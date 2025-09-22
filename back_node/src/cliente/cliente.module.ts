@@ -4,8 +4,8 @@ import { ClienteController } from './cliente.controller';
 import { ClienteEntity } from './cliente.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 @Module({
-  imports:[TypeOrmModule.forFeature([ClienteEntity])],
+  imports: [TypeOrmModule.forFeature([ClienteEntity])],
   providers: [ClienteService],
-  controllers: [ClienteController]
+  controllers: [ClienteController],
 })
 export class ClienteModule {}
