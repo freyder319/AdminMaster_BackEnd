@@ -46,4 +46,10 @@ export class ClienteService {
         await this.clienteRepo.delete(id);
         return {deleted:true};
     }
+    return cliente;
+  }
+  async remove(id: number): Promise<{ deleted: boolean }> {
+    await this.clienteRepo.delete(id);
+    return { deleted: true };
+  }
 }
