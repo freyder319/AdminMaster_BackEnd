@@ -10,6 +10,10 @@ export class ClienteController {
     findAll(): Promise<ClienteEntity[]>{
         return this.clienteService.findAll();
     }
+    @Get(':id')
+    findOne(@Param('id') id: number): Promise<ClienteEntity> {
+    return this.clienteService.findOne(id);
+    }
     @Post()
     create(@Body() data: Partial<ClienteEntity>){
         return this.clienteService.create(data)
