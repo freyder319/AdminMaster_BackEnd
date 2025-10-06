@@ -19,7 +19,7 @@ export class ClienteService {
     await this.clienteRepo.update(id, data);
     const cliente = await this.clienteRepo.findOneBy({ id });
     if (!cliente) {
-      throw new Error('cliente con id ${id} no encontrado');
+      throw new Error(`Cliente con id ${id} NO Encontrado`);
     }
     return cliente;
   }
