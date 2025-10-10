@@ -34,4 +34,25 @@ export class CajaService {
       relations: ['usuarios'],
     });
   }
+
+  async findByUsuarioId(usuarioId: number): Promise<CajaEntity | null> {
+    return this.cajaRepo.findOne({
+      where: {
+        usuarios: {
+          id: usuarioId,
+        },
+      },
+      relations: ['usuarios'],
+    });
+  }
+
+  async findOne(options: { where: any; relations?: string[] }): Promise<CajaEntity | null> {
+    return this.cajaRepo.findOne(options);
+  }
+
+  async findCajaByUsuarioId(id: number, esEmpleado = false) {
+    return esEmpleado
+      ? this.cajaRepo.findOne({ where: { empleados: { id } }, relations: ['empleados'] })
+      : this.cajaRepo.findOne({ where: { usuarios: { id } }, relations: ['usuarios'] });
+  }
 }

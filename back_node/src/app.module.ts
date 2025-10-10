@@ -7,13 +7,15 @@ import { CajaModule } from './caja/caja.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
-import { SmsService } from './sms/sms.service';
 import { MailService } from './mail/mail.service';
-import { SmsModule } from './sms/sms.module';
 import { MailModule } from './mail/mail.module';
+import { EmpleadoModule } from './empleado/empleado.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ClienteModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -29,10 +31,10 @@ import { MailModule } from './mail/mail.module';
     AuthModule,
     UsersModule,
     ConfigModule,
-    SmsModule,
     MailModule,
+    EmpleadoModule,
   ],
   controllers: [AppController],
-  providers: [AppService, SmsService, MailService],
+  providers: [AppService, MailService],
 })
 export class AppModule {}

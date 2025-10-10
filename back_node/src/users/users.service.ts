@@ -25,12 +25,13 @@ export class UsuarioService {
     return this.userRepository.findOne({ where: { telefono } });
   }
 
-  async actualizarContrasena(id: number, nueva: string) {
-    const hash = await bcrypt.hash(nueva, 10);
-    await this.userRepository.update(id, { contrasena: hash });
-  }
-
   async findById(id: number): Promise<Usuario | null> {
     return this.userRepository.findOne({ where: { id } });
+  }
+
+  async actualizarContrasena(id: number, nueva: string) {
+    const hash = await bcrypt.hash(nueva, 10);
+    console.log('Hash generado en servicio:', hash);
+    await this.userRepository.update(id, { contrasena: hash });
   }
 }

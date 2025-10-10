@@ -1,11 +1,10 @@
-import { Controller, Post, Body, Get, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { Usuario } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
 import { UsuarioService } from 'src/users/users.service';
-import { UnauthorizedException, NotFoundException } from '@nestjs/common';
-import { SmsService } from 'src/sms/sms.service';
+import { UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { MailService } from 'src/mail/mail.service';
 
 export interface RequestWithUser extends Request {
@@ -18,7 +17,6 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usuarioService: UsuarioService,
     private readonly mailService: MailService,
-    private readonly smsService: SmsService,
   ) {}
 
   @Post('login')
@@ -27,18 +25,18 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
-    return this.authService.login(user);
-  }
 
-  @Post('loginpuntopos')
-  async loginPuntoPos(@Body('codigoCaja') codigoCaja: string) {
-    const caja = await this.authService.findCajaByCodigo(codigoCaja);
-    if (!caja) throw new UnauthorizedException('Caja no encontrada');
+    let cajaId: number | undefined;
+    if (user.rol === 'punto_pos') {
+      const caja = await this.authService.findCajaByUsuarioId(user.id, user.origen === 'empleado');
+      if (!caja) {
+        throw new UnauthorizedException('Caja no asignada al usuario punto_pos');
+      }
+      cajaId = caja.id;
+    }
 
-    const usuario = caja.usuarios.find((u) => u.rol === 'punto_pos');
-    if (!usuario) throw new UnauthorizedException('Sin usuario punto_pos');
-
-    return this.authService.login(usuario, { cajaId: caja.id });
+    const { caja, ...userSinCaja } = user;
+    return this.authService.login(userSinCaja, cajaId ? { cajaId } : undefined);
   }
 
   @Get('profile')
@@ -52,31 +50,12 @@ export class AuthController {
     return { hashed };
   }
 
-  @Post('recuperar-correo')
-  async recuperarPorCorreo(@Body() body: { correo: string }) {
-    const usuario = await this.usuarioService.findByCorreo(body.correo);
-    if (!usuario) throw new NotFoundException('Correo no registrado');
-
-    const token = this.authService.generarTokenRecuperacion(usuario.id);
-    await this.mailService.enviarCorreoRecuperacion(usuario.correo, token);
-    return { mensaje: 'Correo enviado' };
-  }
-
-  @Post('restablecer-contrasena')
-  async restablecer(@Body() body: { token: string; nueva: string }) {
+  // Telefono
+  @Post('restablecer-con-token')
+  async restablecerConToken(@Body() body: { token: string; nueva: string }) {
     const userId = this.authService.validarTokenRecuperacion(body.token);
     await this.usuarioService.actualizarContrasena(userId, body.nueva);
     return { mensaje: 'Contraseña actualizada' };
-  }
-
-  @Post('recuperar-telefono')
-  async recuperarPorTelefono(@Body() body: { telefono: string }) {
-    const usuario = await this.usuarioService.findByTelefono(body.telefono);
-    if (!usuario) throw new NotFoundException('Teléfono no registrado');
-
-    const codigo = await this.authService.generarCodigoSMS(usuario.id);
-    await this.smsService.enviarCodigo(usuario.telefono, codigo);
-    return { mensaje: 'Código enviado por SMS' };
   }
 
   @Post('validar-codigo-sms')
@@ -89,5 +68,55 @@ export class AuthController {
 
     await this.usuarioService.actualizarContrasena(usuario.id, body.nueva);
     return { mensaje: 'Contraseña actualizada' };
+  }
+
+  // Correo
+  @Post('verificar-correo')
+  verificarCodigo(@Body() body: { correo: string; codigo: string }) {
+    const valido = this.authService.verificarCodigoCorreo(body.correo, body.codigo);
+    if (!valido) throw new BadRequestException('Código incorrecto');
+    return { mensaje: 'Código verificado correctamente' };
+  }
+
+  @Post('restablecer-con-correo')
+  async restablecerConCorreo(@Body() body: { correo: string; nueva: string }) {
+    const usuario = await this.usuarioService.findByUsername(body.correo);
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    console.log('Contraseña recibida para restablecer:', body.nueva);
+    await this.usuarioService.actualizarContrasena(usuario.id, body.nueva);
+    return { mensaje: 'Contraseña actualizada correctamente' };
+  }
+
+  @Post('recuperar-correo')
+  async recuperarPorCorreo(@Body() body: { correo: string }) {
+    const usuario = await this.usuarioService.findByCorreo(body.correo);
+    if (!usuario) throw new NotFoundException('Correo no registrado');
+
+    const token = await this.authService.generarTokenRecuperacion(usuario.id);
+    await this.mailService.enviarCorreoRecuperacion(usuario.correo, token);
+
+    return { mensaje: 'Se ha enviado un código de verificación al correo' };
+  }
+
+  @Get('correo-envio')
+  getCorreoEnvio(): string {
+    return process.env.MAIL_USER || '';
+  }
+
+  @Get('verificar/:correo')
+  async verificarCorreo(@Param('correo') correo: string): Promise<boolean> {
+    const usuario = await this.usuarioService.findByCorreo(correo);
+    return !!usuario;
+  }
+
+  @Post('enviar-recuperacion')
+  async enviarCorreoRecuperacion(@Body('correo') correo: string) {
+    const usuario = await this.usuarioService.findByCorreo(correo);
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+    const token = await this.authService.generarTokenRecuperacion(usuario.id);
+    await this.mailService.enviarCorreoRecuperacion(usuario.correo, token);
+
+    return { mensaje: 'Se ha enviado un código de verificación al correo' };
   }
 }
