@@ -25,6 +25,19 @@ export class ClienteService {
     if (clienteExistente) {
       throw new BadRequestException('El Correo ya se Encuentra Registrado');
     }
+    async update(id:number, data: Partial<ClienteEntity>): Promise<ClienteEntity>{
+        const cliente= await this.clienteRepo.findOneBy({ id });
+        if (!cliente){
+            throw new Error(`cliente con id ${id} no encontrado`);
+        }
+        const clienteExistente = await this.clienteRepo.findOne({
+            where: {correo: data.correo},
+        });
+        if (clienteExistente?.id!==cliente.id){
+            throw new BadRequestException('El Correo ya se Encuentra Registrado');
+        }
+        await this.clienteRepo.update(id,data);
+        return cliente;
     const cliente = this.clienteRepo.create(data);
     return this.clienteRepo.save(cliente);
   }

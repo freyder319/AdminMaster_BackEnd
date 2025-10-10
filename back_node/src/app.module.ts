@@ -9,6 +9,8 @@ import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { MailService } from './mail/mail.service';
 import { MailModule } from './mail/mail.module';
+import { ProductoModule } from './producto/producto.module';
+import { CategoriaModule } from './categoria/categoria.module';
 import { EmpleadoModule } from './empleado/empleado.module';
 
 @Module({
@@ -20,9 +22,9 @@ import { EmpleadoModule } from './empleado/empleado.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
-      port: 5432,
+      port: 5434,
       username: 'postgres',
-      password: 'Cristian2020CC',
+      password: '514022',
       database: 'postgres',
       autoLoadEntities: true,
       synchronize: true,
@@ -32,6 +34,8 @@ import { EmpleadoModule } from './empleado/empleado.module';
     UsersModule,
     ConfigModule,
     MailModule,
+    ProductoModule,
+    CategoriaModule,
     EmpleadoModule,
   ],
   controllers: [AppController],
