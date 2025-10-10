@@ -7,12 +7,12 @@ import { JwtStrategy } from './jwt.strategy';
 import { AuthController } from './auth.controller';
 import { jwtConstants } from './constants';
 import { CajaModule } from 'src/caja/caja.module';
-import { SmsModule } from 'src/sms/sms.module';
 import { MailModule } from 'src/mail/mail.module';
+import { EmpleadoModule } from 'src/empleado/empleado.module';
 
 @Module({
   imports: [
-    SmsModule,
+    EmpleadoModule,
     MailModule,
     CajaModule,
     UsersModule,
