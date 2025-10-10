@@ -11,6 +11,8 @@ import { SmsService } from './sms/sms.service';
 import { MailService } from './mail/mail.service';
 import { SmsModule } from './sms/sms.module';
 import { MailModule } from './mail/mail.module';
+import { ProductoModule } from './producto/producto.module';
+import { CategoriaModule } from './categoria/categoria.module';
 
 @Module({
   imports: [
@@ -18,9 +20,9 @@ import { MailModule } from './mail/mail.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
-      port: 5432,
+      port: 5434,
       username: 'postgres',
-      password: 'Cristian2020CC',
+      password: '514022',
       database: 'postgres',
       autoLoadEntities: true,
       synchronize: true,
@@ -31,6 +33,8 @@ import { MailModule } from './mail/mail.module';
     ConfigModule,
     SmsModule,
     MailModule,
+    ProductoModule,
+    CategoriaModule,
   ],
   controllers: [AppController],
   providers: [AppService, SmsService, MailService],

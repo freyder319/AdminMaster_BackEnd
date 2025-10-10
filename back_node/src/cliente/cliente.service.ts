@@ -31,7 +31,7 @@ export class ClienteService {
     async update(id:number, data: Partial<ClienteEntity>): Promise<ClienteEntity>{
         const cliente= await this.clienteRepo.findOneBy({ id });
         if (!cliente){
-            throw new Error('cliente con id ${id} no encontrado');
+            throw new Error(`cliente con id ${id} no encontrado`);
         }
         const clienteExistente = await this.clienteRepo.findOne({
             where: {correo: data.correo},
@@ -46,10 +46,4 @@ export class ClienteService {
         await this.clienteRepo.delete(id);
         return {deleted:true};
     }
-    return cliente;
-  }
-  async remove(id: number): Promise<{ deleted: boolean }> {
-    await this.clienteRepo.delete(id);
-    return { deleted: true };
-  }
 }
