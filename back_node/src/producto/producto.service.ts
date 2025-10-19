@@ -13,6 +13,15 @@ export class ProductoService {
     private productoRepo: Repository<Producto>,
   ){}
   async create(data: Partial<Producto>):Promise<Producto> {
+    // Mapear idCategoria a relación categoria si viene como número
+    if ((data as any).idCategoria) {
+      (data as any).categoria = { idCategoria: (data as any).idCategoria } as any;
+      delete (data as any).idCategoria;
+    }
+    // Asignar imagen por defecto si no viene
+    if (!data.imgProducto || (typeof data.imgProducto === 'string' && data.imgProducto.trim() === '')) {
+      data.imgProducto = 'default.jpg';
+    }
     const productoExistente = await this.productoRepo.findOne({
       where: {codigoProducto:data.codigoProducto},
     })
@@ -24,11 +33,11 @@ export class ProductoService {
   }
 
   findAll(): Promise<Producto[]> {
-    return this.productoRepo.find();
+    return this.productoRepo.find({ relations: ['categoria'] });
   }
 
   async findOne(id: number): Promise<Producto> {
-    const  producto = await this.productoRepo.findOneBy({id:id})
+    const  producto = await this.productoRepo.findOne({ where: { id }, relations: ['categoria'] })
     if(!producto){
       throw new NotFoundException(`Producto con id ${id} no encontrado`);
     }
@@ -36,7 +45,12 @@ export class ProductoService {
   }
 
   async update(id: number, data: Partial<Producto>): Promise<Producto> {
-    const producto = await this.productoRepo.findOneBy({id:id});
+    // Mapear idCategoria a relación categoria si viene como número
+    if ((data as any).idCategoria) {
+      (data as any).categoria = { idCategoria: (data as any).idCategoria } as any;
+      delete (data as any).idCategoria;
+    }
+    const producto = await this.productoRepo.findOne({ where: { id } });
     if(!producto){
       throw new Error (`Producto con id ${id} no encontrado`);
     }
@@ -46,8 +60,16 @@ export class ProductoService {
     if(productoExistente?.codigoProducto!==producto.codigoProducto){
       throw new BadRequestException('Codigo de Producto ya Existente');
     }
-    await this.productoRepo.update(id,data);
-    return producto;
+    // Si el cliente envía vacío o null para imagen, usar default
+    if (data.hasOwnProperty('imgProducto')) {
+      const val: any = (data as any).imgProducto;
+      if (!val || (typeof val === 'string' && val.trim() === '')) {
+        data.imgProducto = 'default.jpg';
+      }
+    }
+    // Usar save para manejar relaciones correctamente
+    const actualizado = await this.productoRepo.save({ id, ...data });
+    return actualizado;
   }
 
   async remove(id: number):Promise<{deleted:boolean}> {

@@ -31,8 +31,8 @@ export class Producto {
   @Column({ name: 'precioComercial', type: 'decimal', precision: 10, scale: 0 })
   precioComercial!: number;
 
-  // 👇 Relación con categoría
-  @ManyToOne(() => categoria, (categoria) => categoria.productos, { nullable: true })
+  //  Relación con categoría
+  @ManyToOne(() => categoria, categoria => categoria.productos)
   @JoinColumn({ name: 'idCategoria' })
   categoria?: categoria;
 }
