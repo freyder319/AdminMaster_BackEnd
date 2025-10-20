@@ -14,6 +14,7 @@ import { CategoriaModule } from './categoria/categoria.module';
 import { EmpleadoModule } from './empleado/empleado.module';
 import { ProveedorModule } from './proveedor/proveedor.module';
 import { TurnoModule } from './turno/turno.module';
+import { ConfiguracionModule } from './configuracion/configuracion.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { TurnoModule } from './turno/turno.module';
     EmpleadoModule,
     ProveedorModule,
     TurnoModule,
+    ConfiguracionModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

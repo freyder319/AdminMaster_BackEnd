@@ -21,7 +21,7 @@ export class ProductoService {
   }
 
   findAll(): Promise<Producto[]> {
-    return this.productoRepo.find();
+    return this.productoRepo.find({ relations: ['categoria'] });
   }
 
   async findOne(id: number): Promise<Producto> {
