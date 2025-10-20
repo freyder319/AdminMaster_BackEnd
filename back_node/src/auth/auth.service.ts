@@ -81,17 +81,28 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       rol: user.rol,
+      userId: user.id,
       cajaId: extra?.cajaId,
     };
   }
 
   // Logica de Recuperación Correo
-  async generarTokenRecuperacion(userId: number): Promise<string> {
+  async generarTokenRecuperacion(id: number, tipo: 'usuario' | 'empleado'): Promise<string> {
     const token = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const usuario = await this.usuarioService.findById(userId);
-    if (!usuario || !usuario.correo) throw new BadRequestException('Usuario sin correo');
 
-    this.codigosCorreo.set(usuario.correo, token);
+    let correo: string | undefined;
+
+    if (tipo === 'usuario') {
+      const usuario = await this.usuarioService.findById(id);
+      if (!usuario || !usuario.correo) throw new BadRequestException('Usuario sin correo');
+      correo = usuario.correo;
+    } else {
+      const empleado = await this.empleadoService.findById(id);
+      if (!empleado || !empleado.correo) throw new BadRequestException('Empleado sin correo');
+      correo = empleado.correo;
+    }
+
+    this.codigosCorreo.set(correo, token);
     return token;
   }
 

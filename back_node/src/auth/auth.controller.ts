@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Req, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, Param, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import type { Request } from 'express';
 import { Usuario } from '../users/user.entity';
@@ -6,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 import { UsuarioService } from 'src/users/users.service';
 import { UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { MailService } from 'src/mail/mail.service';
+import { EmpleadoService } from 'src/empleado/empleado.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 export interface RequestWithUser extends Request {
   user: Usuario;
@@ -17,6 +19,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usuarioService: UsuarioService,
     private readonly mailService: MailService,
+    private readonly empleadoService: EmpleadoService,
   ) {}
 
   @Post('login')
@@ -41,6 +44,12 @@ export class AuthController {
 
   @Get('profile')
   getProfile(@Req() req: RequestWithUser) {
+    return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  me(@Req() req: any) {
     return req.user;
   }
 
@@ -89,11 +98,28 @@ export class AuthController {
 
   @Post('recuperar-correo')
   async recuperarPorCorreo(@Body() body: { correo: string }) {
-    const usuario = await this.usuarioService.findByCorreo(body.correo);
-    if (!usuario) throw new NotFoundException('Correo no registrado');
+    if (!body || typeof body.correo !== 'string') {
+      throw new BadRequestException('Usuario sin correo');
+    }
 
-    const token = await this.authService.generarTokenRecuperacion(usuario.id);
-    await this.mailService.enviarCorreoRecuperacion(usuario.correo, token);
+    const correo = body.correo.trim().toLowerCase();
+    console.log('Correo recibido:', correo);
+
+    const usuario = await this.usuarioService.findByCorreo(correo);
+    const empleado = await this.empleadoService.findByCorreo(correo);
+
+    console.log('Usuario:', usuario);
+    console.log('Empleado:', empleado);
+
+    if (!usuario && !empleado) {
+      throw new NotFoundException('Correo no registrado');
+    }
+
+    const id = usuario?.id || empleado!.id;
+    const tipo = usuario ? 'usuario' : 'empleado';
+    const token = await this.authService.generarTokenRecuperacion(id, tipo);
+
+    await this.mailService.enviarCorreoRecuperacion(correo, token);
 
     return { mensaje: 'Se ha enviado un código de verificación al correo' };
   }
@@ -111,12 +137,27 @@ export class AuthController {
 
   @Post('enviar-recuperacion')
   async enviarCorreoRecuperacion(@Body('correo') correo: string) {
-    const usuario = await this.usuarioService.findByCorreo(correo);
-    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    const normalizado = correo.trim().toLowerCase();
 
-    const token = await this.authService.generarTokenRecuperacion(usuario.id);
-    await this.mailService.enviarCorreoRecuperacion(usuario.correo, token);
+    const usuario = await this.usuarioService.findByCorreo(normalizado);
+    const empleado = await this.empleadoService.findByCorreo(normalizado);
+
+    if (!usuario && !empleado) {
+      throw new NotFoundException('Correo no registrado');
+    }
+
+    const id = usuario?.id || empleado!.id;
+    const tipo = usuario ? 'usuario' : 'empleado';
+    const token = await this.authService.generarTokenRecuperacion(id, tipo);
+    await this.mailService.enviarCorreoRecuperacion(normalizado, token);
 
     return { mensaje: 'Se ha enviado un código de verificación al correo' };
+  }
+
+  @Get('debug-empleado/:correo')
+  async debugEmpleado(@Param('correo') correo: string) {
+    const empleado = await this.empleadoService.findByCorreo(correo);
+    console.log('Empleado encontrado:', empleado);
+    return empleado || { mensaje: 'No encontrado' };
   }
 }

@@ -18,7 +18,7 @@ import { EmpleadoModule } from 'src/empleado/empleado.module';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: jwtConstants.secret,
+      secret: process.env.JWT_SECRET || jwtConstants.secret,
       signOptions: { expiresIn: '1h' },
     }),
   ],

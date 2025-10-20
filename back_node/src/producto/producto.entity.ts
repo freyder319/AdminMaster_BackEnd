@@ -1,11 +1,4 @@
-import 
-{
-    Entity, 
-    PrimaryGeneratedColumn, 
-    Column, 
-    ManyToOne, 
-    JoinColumn 
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { categoria } from 'src/categoria/categoria.entity';
 
 @Entity('productos')
