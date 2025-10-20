@@ -12,6 +12,8 @@ import { MailModule } from './mail/mail.module';
 import { ProductoModule } from './producto/producto.module';
 import { CategoriaModule } from './categoria/categoria.module';
 import { EmpleadoModule } from './empleado/empleado.module';
+import { ProveedorModule } from './proveedor/proveedor.module';
+import { TurnoModule } from './turno/turno.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 
 @Module({
@@ -23,9 +25,9 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
-      port: 5434,
+      port: 5432,
       username: 'postgres',
-      password: '514022',
+      password: 'Cristian2020CC',
       database: 'postgres',
       autoLoadEntities: true,
       synchronize: true,
@@ -38,6 +40,8 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     ProductoModule,
     CategoriaModule,
     EmpleadoModule,
+    ProveedorModule,
+    TurnoModule,
     ConfiguracionModule,
   ],
   controllers: [AppController],

@@ -69,4 +69,14 @@ export class EmpleadoService {
   async findByUsername(correo: string): Promise<Empleado | null> {
     return this.empleadoRepo.findOne({ where: { correo } });
   }
+
+  async findByCorreo(correo: string): Promise<Empleado | null> {
+    return this.empleadoRepo.findOne({
+      where: { correo: correo.trim().toLowerCase() },
+    });
+  }
+
+  async findById(id: number): Promise<Empleado | null> {
+    return this.empleadoRepo.findOne({ where: { id } });
+  }
 }
