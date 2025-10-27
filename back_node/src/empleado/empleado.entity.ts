@@ -6,6 +6,12 @@ export class Empleado {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @Column({ type: 'varchar', length: 100, default: '' })
+  nombre!: string;
+
+  @Column({ type: 'varchar', length: 100, default: '' })
+  apellido!: string;
+
   @Column({ unique: true })
   correo!: string;
 

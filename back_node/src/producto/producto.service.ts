@@ -16,7 +16,13 @@ export class ProductoService {
     if (productoExistente) {
       throw new BadRequestException('Codigo de Producto ya Existente');
     }
-    const producto = await this.productoRepo.create(data);
+    // Mapear idCategoria (si viene) a la relación categoria
+    const { categoria, ...rest } = data as any;
+    const producto = this.productoRepo.create(rest as Partial<Producto>);
+    const idCategoria = (data as any)?.idCategoria ?? (categoria as any)?.idCategoria;
+    if (idCategoria) {
+      (producto as any).categoria = { idCategoria: Number(idCategoria) } as any;
+    }
     return this.productoRepo.save(producto);
   }
 
@@ -43,7 +49,13 @@ export class ProductoService {
     if (productoExistente?.codigoProducto !== producto.codigoProducto) {
       throw new BadRequestException('Codigo de Producto ya Existente');
     }
-    await this.productoRepo.update(id, data);
+    const updateData: any = { ...data };
+    const idCategoria = (data as any)?.idCategoria ?? (data as any)?.categoria?.idCategoria;
+    if (idCategoria) {
+      updateData.categoria = { idCategoria: Number(idCategoria) } as any;
+      delete updateData.idCategoria;
+    }
+    await this.productoRepo.update(id, updateData);
     return producto;
   }
 
@@ -54,7 +66,7 @@ export class ProductoService {
   async countProductos(): Promise<number> {
     const total = await this.productoRepo.count();
     if (total == null) {
-      total == 0;
+      return 0;
     }
     return total;
   }

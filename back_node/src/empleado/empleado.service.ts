@@ -22,6 +22,8 @@ export class EmpleadoService {
     }
 
     const empleado = this.empleadoRepo.create({
+      nombre: (dto as any).nombre,
+      apellido: (dto as any).apellido,
       correo: dto.correo,
       contrasena: dto.contrasena,
       telefono: dto.telefono,
@@ -51,7 +53,10 @@ export class EmpleadoService {
       empleado.caja = nuevaCaja;
     }
 
-    Object.assign(empleado, dto);
+    if ((dto as any).nombre !== undefined) (empleado as any).nombre = (dto as any).nombre;
+    if ((dto as any).apellido !== undefined) (empleado as any).apellido = (dto as any).apellido;
+    if ((dto as any).correo !== undefined) (empleado as any).correo = (dto as any).correo;
+    if ((dto as any).telefono !== undefined) (empleado as any).telefono = (dto as any).telefono;
     return this.empleadoRepo.save(empleado);
   }
 

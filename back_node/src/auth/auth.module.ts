@@ -18,7 +18,8 @@ import { EmpleadoModule } from 'src/empleado/empleado.module';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || jwtConstants.secret,
+      // Forzar uso de un único secreto durante diagnóstico para evitar firmas distintas
+      secret: jwtConstants.secret,
       signOptions: { expiresIn: '1h' },
     }),
   ],

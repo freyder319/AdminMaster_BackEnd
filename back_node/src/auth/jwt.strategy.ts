@@ -14,10 +14,14 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(JwtStrategyBase, 'jwt') {
   constructor() {
+    const secret = jwtConstants.secret; // Forzar mismo secreto que JwtModule durante diagnóstico
+    try {
+      console.log(`[JwtStrategy] Using secret from constants.ts, length=${String(secret).length}`);
+    } catch {}
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || jwtConstants.secret,
+      secretOrKey: secret,
     });
   }
 

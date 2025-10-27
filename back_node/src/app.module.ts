@@ -15,6 +15,10 @@ import { EmpleadoModule } from './empleado/empleado.module';
 import { ProveedorModule } from './proveedor/proveedor.module';
 import { TurnoModule } from './turno/turno.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { GastoModule } from './gasto/gasto.module';
+import { VentaLibreModule } from './venta-libre/venta-libre.module';
+import { VentaModule } from './venta/venta.module';
+import { ReportModule } from './report/report.module';
 
 @Module({
   imports: [
@@ -43,6 +47,10 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     ProveedorModule,
     TurnoModule,
     ConfiguracionModule,
+    GastoModule,
+    VentaLibreModule,
+    VentaModule,
+    ReportModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],
