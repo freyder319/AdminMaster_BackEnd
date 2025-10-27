@@ -8,6 +8,7 @@ import { UnauthorizedException, NotFoundException, BadRequestException } from '@
 import { MailService } from 'src/mail/mail.service';
 import { EmpleadoService } from 'src/empleado/empleado.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 export interface RequestWithUser extends Request {
   user: Usuario;
@@ -20,6 +21,7 @@ export class AuthController {
     private readonly usuarioService: UsuarioService,
     private readonly mailService: MailService,
     private readonly empleadoService: EmpleadoService,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Post('login')
@@ -53,6 +55,39 @@ export class AuthController {
     return req.user;
   }
 
+  // Endpoint temporal para depurar problemas de JWT
+  @Post('token-health')
+  async tokenHealth(@Req() req: any) {
+    const auth = String(req.headers?.authorization || '');
+    const bearer = auth.startsWith('Bearer ')
+      ? auth.substring(7)
+      : undefined;
+    if (!bearer) {
+      return { valid: false, reason: 'No Authorization Bearer token', received: auth };
+    }
+    try {
+      const decoded: any = this.jwtService.decode(bearer);
+      const verified: any = this.jwtService.verify(bearer);
+      const nowSec = Math.floor(Date.now() / 1000);
+      const exp = Number(verified?.exp ?? decoded?.exp ?? 0);
+      const iat = Number(verified?.iat ?? decoded?.iat ?? 0);
+      const secondsToExp = exp ? exp - nowSec : null;
+      return {
+        valid: true,
+        payload: verified,
+        iat,
+        exp,
+        now: nowSec,
+        secondsToExp,
+      };
+    } catch (e: any) {
+      return {
+        valid: false,
+        reason: e?.message || String(e),
+      };
+    }
+  }
+
   @Post('hash-password')
   async hashPassword(@Body('contrasena') contrasena: string) {
     const hashed = await bcrypt.hash(contrasena, 10);
@@ -82,8 +117,11 @@ export class AuthController {
   // Correo
   @Post('verificar-correo')
   verificarCodigo(@Body() body: { correo: string; codigo: string }) {
-    const valido = this.authService.verificarCodigoCorreo(body.correo, body.codigo);
-    if (!valido) throw new BadRequestException('Código incorrecto');
+    const res = this.authService.verificarCodigoCorreoDetalle(body.correo, body.codigo);
+    if (!res.ok) {
+      if (res.reason === 'expired') throw new BadRequestException('Código expirado');
+      throw new BadRequestException('Código incorrecto');
+    }
     return { mensaje: 'Código verificado correctamente' };
   }
 

@@ -14,7 +14,8 @@ import { Rol } from 'src/users/role.enum';
 export class AuthService {
   private tokensRecuperacion = new Map<string, number>();
   private codigosSMS = new Map<string, string>();
-  private codigosCorreo = new Map<string, string>();
+  private codigosCorreo = new Map<string, { code: string; createdAt: number }>();
+  private readonly EMAIL_CODE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
   constructor(
     private readonly usuarioService: UsuarioService,
@@ -102,15 +103,26 @@ export class AuthService {
       correo = empleado.correo;
     }
 
-    this.codigosCorreo.set(correo, token);
+    this.codigosCorreo.set(correo, { code: token, createdAt: Date.now() });
     return token;
   }
 
-  verificarCodigoCorreo(correo: string, codigo: string): boolean {
-    const esperado = this.codigosCorreo.get(correo);
-    if (!esperado || esperado !== codigo) return false;
+  verificarCodigoCorreoDetalle(correo: string, codigo: string): { ok: boolean; reason?: 'expired' | 'invalid' | 'missing' } {
+    const entry = this.codigosCorreo.get(correo);
+    if (!entry) return { ok: false, reason: 'missing' };
+    const expired = Date.now() - entry.createdAt > this.EMAIL_CODE_TTL_MS;
+    if (expired) {
+      this.codigosCorreo.delete(correo);
+      return { ok: false, reason: 'expired' };
+    }
+    if (entry.code !== codigo) return { ok: false, reason: 'invalid' };
     this.codigosCorreo.delete(correo);
-    return true;
+    return { ok: true };
+  }
+
+  verificarCodigoCorreo(correo: string, codigo: string): boolean {
+    const res = this.verificarCodigoCorreoDetalle(correo, codigo);
+    return !!res.ok;
   }
 
   validarTokenRecuperacion(token: string): number {

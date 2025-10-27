@@ -34,6 +34,7 @@ export class MailService {
             <p>Tu código de verificación es:</p>
             <p style="font-size: 24px; font-weight: bold; color: #2980b9;">${token}</p>
             <p>Ingresa este código en la aplicación para continuar con el restablecimiento de tu contraseña.</p>
+            <p style="color:#c0392b; font-weight: 600;">Importante: este código expira en 5 minutos.</p>
             <br>
             <p style="font-size: 12px; color: #7f8c8d;">Si no solicitaste este código, puedes ignorar este mensaje.</p>
           </div>

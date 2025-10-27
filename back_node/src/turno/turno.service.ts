@@ -7,6 +7,10 @@ import { CerrarTurnoDto } from './dto/cerrar-turno.dto';
 import { CajaMovimiento } from '../caja/caja-mov.entity';
 import { UsuarioService } from '../users/users.service';
 import { EmpleadoService } from '../empleado/empleado.service';
+import { TurnoLog } from './turno-log.entity';
+import { Venta } from '../venta/venta.entity';
+import { VentaLibre } from '../venta-libre/venta-libre.entity';
+import { GastoEntity } from '../gasto/gasto.entity';
 
 @Injectable()
 export class TurnoService {
@@ -14,6 +18,10 @@ export class TurnoService {
     private readonly dataSource: DataSource,
     @InjectRepository(Turno) private readonly turnoRepo: Repository<Turno>,
     @InjectRepository(CajaMovimiento) private readonly cajaRepo: Repository<CajaMovimiento>,
+    @InjectRepository(TurnoLog) private readonly logRepo: Repository<TurnoLog>,
+    @InjectRepository(Venta) private readonly ventaRepo: Repository<Venta>,
+    @InjectRepository(VentaLibre) private readonly ventaLibreRepo: Repository<VentaLibre>,
+    @InjectRepository(GastoEntity) private readonly gastoRepo: Repository<GastoEntity>,
     private readonly usuarioService: UsuarioService,
     private readonly empleadoService: EmpleadoService,
   ) {}
@@ -129,8 +137,30 @@ export class TurnoService {
       ? await manager.findOne(CajaMovimiento, { where: { id: turno.cierreCajaId } })
       : null;
 
-    // TODO: reemplazar con módulo real de ventas/actividad
-    const actividad = await this.fakeActividad(manager, turnoId);
+    // Ventas del turno: totales y conteo
+    const ventas = await this.ventaRepo.find({ where: { turnoId }, select: ['id', 'total'] as any });
+    let totalVentas = 0;
+    for (const v of ventas) totalVentas += Number((v as any).total || 0);
+    const transacciones = ventas.length;
+
+    // Ventas libres del turno: totales y conteo
+    const ventasLibres = await this.ventaLibreRepo.find({ where: { turno_id: turnoId }, select: ['id', 'total'] as any });
+    let totalVentasLibres = 0;
+    for (const v of ventasLibres) totalVentasLibres += Number((v as any).total || 0);
+    const transaccionesLibres = ventasLibres.length;
+
+    // Gastos del turno: totales y conteo
+    const gastos = await this.gastoRepo.find({ where: { turnoId }, select: ['id', 'monto', 'nombre', 'forma_pago'] as any, order: { id: 'DESC' as any } });
+    let totalGastos = 0;
+    for (const g of gastos) totalGastos += Number((g as any).monto || 0);
+    const cantidadGastos = gastos.length;
+
+    // Logs del turno (conteos por tipo y últimos eventos) - opcional
+    const logs = await this.logRepo.find({ where: { turnoId }, order: { fecha: 'DESC' as any }, take: 20 });
+    const countsByTipo: Record<string, number> = {};
+    for (const l of await this.logRepo.find({ where: { turnoId } })) {
+      countsByTipo[l.tipo] = (countsByTipo[l.tipo] || 0) + 1;
+    }
 
     return {
       turno: {
@@ -140,11 +170,19 @@ export class TurnoService {
       },
       aperturaCaja: apertura ? { fecha: apertura.fecha, montoInicial: Number(apertura.monto) } : null,
       cierreCaja: cierre ? { fecha: cierre.fecha, montoFinal: Number(cierre.monto) } : null,
-      actividad,
+      actividad: {
+        totalVentas,
+        transacciones,
+        totalVentasLibres,
+        transaccionesLibres,
+        totalGastos,
+        cantidadGastos,
+        // listas resumidas
+        ventas: ventas.map(v => ({ id: (v as any).id, total: Number((v as any).total || 0) })),
+        ventasLibres: ventasLibres.map(v => ({ id: (v as any).id, total: Number((v as any).total || 0) })),
+        gastos: gastos.map(g => ({ id: (g as any).id, monto: Number((g as any).monto || 0), nombre: (g as any).nombre || null, forma_pago: (g as any).forma_pago || null })),
+      },
+      actividadLogs: { countsByTipo, ultimos: logs },
     };
-  }
-
-  private async fakeActividad(_manager: any, _turnoId: number) {
-    return { totalVentas: 0, transacciones: 0 };
   }
 }
