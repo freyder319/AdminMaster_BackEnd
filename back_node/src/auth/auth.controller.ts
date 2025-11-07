@@ -2,13 +2,12 @@ import { Controller, Post, Body, Get, Req, Param, UseGuards } from '@nestjs/comm
 import { AuthService } from './auth.service';
 import type { Request } from 'express';
 import { Usuario } from '../users/user.entity';
-import * as bcrypt from 'bcrypt';
 import { UsuarioService } from 'src/users/users.service';
 import { UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { MailService } from 'src/mail/mail.service';
 import { EmpleadoService } from 'src/empleado/empleado.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { JwtService } from '@nestjs/jwt';
+import { AuditService } from 'src/audit/audit.service';
 
 export interface RequestWithUser extends Request {
   user: Usuario;
@@ -21,7 +20,7 @@ export class AuthController {
     private readonly usuarioService: UsuarioService,
     private readonly mailService: MailService,
     private readonly empleadoService: EmpleadoService,
-    private readonly jwtService: JwtService,
+    private readonly audit: AuditService,
   ) {}
 
   @Post('login')
@@ -41,7 +40,19 @@ export class AuthController {
     }
 
     const { caja, ...userSinCaja } = user;
-    return this.authService.login(userSinCaja, cajaId ? { cajaId } : undefined);
+    const res = this.authService.login(userSinCaja, cajaId ? { cajaId } : undefined);
+    try {
+      await this.audit.log({
+        module: 'auth',
+        action: 'login',
+        actorUserId: user.id,
+        actorRol: user.rol,
+        entity: 'Usuario',
+        entityId: String(user.id),
+        details: { correo: user.correo, cajaId: cajaId ?? null },
+      });
+    } catch {}
+    return res;
   }
 
   @Get('profile')
@@ -55,44 +66,7 @@ export class AuthController {
     return req.user;
   }
 
-  // Endpoint temporal para depurar problemas de JWT
-  @Post('token-health')
-  async tokenHealth(@Req() req: any) {
-    const auth = String(req.headers?.authorization || '');
-    const bearer = auth.startsWith('Bearer ')
-      ? auth.substring(7)
-      : undefined;
-    if (!bearer) {
-      return { valid: false, reason: 'No Authorization Bearer token', received: auth };
-    }
-    try {
-      const decoded: any = this.jwtService.decode(bearer);
-      const verified: any = this.jwtService.verify(bearer);
-      const nowSec = Math.floor(Date.now() / 1000);
-      const exp = Number(verified?.exp ?? decoded?.exp ?? 0);
-      const iat = Number(verified?.iat ?? decoded?.iat ?? 0);
-      const secondsToExp = exp ? exp - nowSec : null;
-      return {
-        valid: true,
-        payload: verified,
-        iat,
-        exp,
-        now: nowSec,
-        secondsToExp,
-      };
-    } catch (e: any) {
-      return {
-        valid: false,
-        reason: e?.message || String(e),
-      };
-    }
-  }
-
-  @Post('hash-password')
-  async hashPassword(@Body('contrasena') contrasena: string) {
-    const hashed = await bcrypt.hash(contrasena, 10);
-    return { hashed };
-  }
+  
 
   // Telefono
   @Post('restablecer-con-token')
@@ -129,7 +103,6 @@ export class AuthController {
   async restablecerConCorreo(@Body() body: { correo: string; nueva: string }) {
     const usuario = await this.usuarioService.findByUsername(body.correo);
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
-    console.log('Contraseña recibida para restablecer:', body.nueva);
     await this.usuarioService.actualizarContrasena(usuario.id, body.nueva);
     return { mensaje: 'Contraseña actualizada correctamente' };
   }
@@ -141,13 +114,9 @@ export class AuthController {
     }
 
     const correo = body.correo.trim().toLowerCase();
-    console.log('Correo recibido:', correo);
 
     const usuario = await this.usuarioService.findByCorreo(correo);
     const empleado = await this.empleadoService.findByCorreo(correo);
-
-    console.log('Usuario:', usuario);
-    console.log('Empleado:', empleado);
 
     if (!usuario && !empleado) {
       throw new NotFoundException('Correo no registrado');
@@ -160,11 +129,6 @@ export class AuthController {
     await this.mailService.enviarCorreoRecuperacion(correo, token);
 
     return { mensaje: 'Se ha enviado un código de verificación al correo' };
-  }
-
-  @Get('correo-envio')
-  getCorreoEnvio(): string {
-    return process.env.MAIL_USER || '';
   }
 
   @Get('verificar/:correo')
@@ -192,10 +156,5 @@ export class AuthController {
     return { mensaje: 'Se ha enviado un código de verificación al correo' };
   }
 
-  @Get('debug-empleado/:correo')
-  async debugEmpleado(@Param('correo') correo: string) {
-    const empleado = await this.empleadoService.findByCorreo(correo);
-    console.log('Empleado encontrado:', empleado);
-    return empleado || { mensaje: 'No encontrado' };
-  }
+  
 }

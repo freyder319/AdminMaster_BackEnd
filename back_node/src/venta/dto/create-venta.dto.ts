@@ -38,4 +38,8 @@ export class CreateVentaDto {
 
   @IsOptional()
   turno_id?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  descuentoId?: number;
 }

@@ -69,4 +69,10 @@ export class TurnoController {
   cerradosPublic() {
     return this.turnoService.listCerrados();
   }
+
+  // Endpoint unificado público: activos + cerrados en una sola respuesta
+  @Get('overview-public')
+  overviewPublic() {
+    return this.turnoService.listActivosYCerrados();
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import type { Response } from 'express';
 import * as ExcelJS from 'exceljs';
 import { VentaService } from '../venta/venta.service';
@@ -8,6 +8,8 @@ import { CajaService } from '../caja/caja.service';
 import { ProveedorService } from '../proveedor/proveedor.service';
 import { ClienteService } from '../cliente/cliente.service';
 import { EmpleadoService } from '../empleado/empleado.service';
+import type { Request } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('report')
 export class ReportController {
@@ -21,14 +23,20 @@ export class ReportController {
     private readonly empleadoSrv: EmpleadoService,
   ) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('general')
   async general(
+    @Req() req: Request,
     @Res() res: Response,
     @Query('tipos') tipos?: string | string[], // csv or repeated: ventas,gastos or tipos=ventas&tipos=gastos
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('forma_pago') forma_pago?: string,
   ) {
+    const rol = String((req as any)?.user?.rol || '').toLowerCase();
+    if (rol !== 'admin') {
+      throw new ForbiddenException('Solo admin puede descargar reportes');
+    }
     const raw = Array.isArray(tipos) ? tipos : (tipos ? tipos.split(',') : ['ventas']);
     const tiposArr = raw.map(t => t.trim()).filter(Boolean);
 

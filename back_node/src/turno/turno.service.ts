@@ -114,6 +114,14 @@ export class TurnoService {
     return res;
   }
 
+  async listActivosYCerrados() {
+    const [activos, cerrados] = await Promise.all([
+      this.listActivos(),
+      this.listCerrados(),
+    ]);
+    return { activos, cerrados };
+  }
+
   private async resolveCorreo(usuarioId: number): Promise<string> {
     try {
       const usuario = await this.usuarioService.findById(usuarioId);
