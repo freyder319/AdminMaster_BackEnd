@@ -19,6 +19,7 @@ import { GastoModule } from './gasto/gasto.module';
 import { VentaLibreModule } from './venta-libre/venta-libre.module';
 import { VentaModule } from './venta/venta.module';
 import { ReportModule } from './report/report.module';
+import { EstadisticasModule } from './estadisticas/estadisticas.module';
 
 @Module({
   imports: [
@@ -29,9 +30,9 @@ import { ReportModule } from './report/report.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
-      port: 5432,
+      port: 5434,
       username: 'postgres',
-      password: 'Cristian2020CC',
+      password: '514022',
       database: 'postgres',
       autoLoadEntities: true,
       synchronize: true,
@@ -51,6 +52,7 @@ import { ReportModule } from './report/report.module';
     VentaLibreModule,
     VentaModule,
     ReportModule,
+    EstadisticasModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],
