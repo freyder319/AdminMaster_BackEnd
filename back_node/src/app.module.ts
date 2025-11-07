@@ -25,7 +25,7 @@ import { PqrsModule } from './pqrs/pqrs.module';
 import { AuditModule } from './audit/audit.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './audit/audit.interceptor';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+// Rate limiting disabled: Throttler removed
 import { RolesGuard } from './auth/roles.guard';
 import { ConfigService } from '@nestjs/config';
 
@@ -35,19 +35,6 @@ import { ConfigService } from '@nestjs/config';
       isGlobal: true,
     }),
     ClienteModule,
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60_000,
-          limit: 60,
-        },
-        {
-          name: 'auth-low',
-          ttl: 60_000,
-          limit: 5,
-        },
-      ],
-    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
@@ -86,7 +73,6 @@ import { ConfigService } from '@nestjs/config';
     AppService,
     MailService,
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

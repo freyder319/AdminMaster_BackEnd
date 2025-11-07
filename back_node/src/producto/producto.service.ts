@@ -43,11 +43,14 @@ export class ProductoService {
     if (!producto) {
       throw new Error(`Producto con id ${id} no encontrado`);
     }
-    const productoExistente = await this.productoRepo.findOne({
-      where: { codigoProducto: data.codigoProducto },
-    });
-    if (productoExistente?.codigoProducto !== producto.codigoProducto) {
-      throw new BadRequestException('Codigo de Producto ya Existente');
+    // Validar código duplicado solo si se intenta cambiar el código
+    if (data.codigoProducto && data.codigoProducto !== producto.codigoProducto) {
+      const productoExistente = await this.productoRepo.findOne({
+        where: { codigoProducto: data.codigoProducto },
+      });
+      if (productoExistente && productoExistente.id !== producto.id) {
+        throw new BadRequestException('Codigo de Producto ya Existente');
+      }
     }
     const updateData: any = { ...data };
     const idCategoria = (data as any)?.idCategoria ?? (data as any)?.categoria?.idCategoria;
@@ -56,12 +59,27 @@ export class ProductoService {
       delete updateData.idCategoria;
     }
     await this.productoRepo.update(id, updateData);
-    return producto;
+    // Retornar el producto actualizado (opcionalmente con relaciones)
+    const actualizado = await this.productoRepo.findOne({ where: { id }, relations: ['categoria'] });
+    if (!actualizado) throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    return actualizado;
   }
 
   async remove(id: number): Promise<{ deleted: boolean }> {
-    await this.productoRepo.delete(id);
-    return { deleted: true };
+    try {
+      const res = await this.productoRepo.delete(id);
+      if (!res.affected) {
+        throw new NotFoundException(`Producto con id ${id} no encontrado`);
+      }
+      return { deleted: true };
+    } catch (e: any) {
+      const code = e?.code || e?.driverError?.code;
+      // Postgres foreign key violation
+      if (code === '23503') {
+        throw new BadRequestException('No se puede eliminar: el producto está enlazado a una venta u otros registros.');
+      }
+      throw e;
+    }
   }
   async countProductos(): Promise<number> {
     const total = await this.productoRepo.count();

@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { TurnoService } from './turno.service';
 import { IniciarTurnoDto } from './dto/iniciar-turno.dto';
 import { CerrarTurnoDto } from './dto/cerrar-turno.dto';
@@ -55,6 +56,7 @@ export class TurnoController {
   }
 
   @Get('activos-public')
+  @SkipThrottle()
   activosPublic() {
     return this.turnoService.listActivos();
   }
@@ -66,12 +68,14 @@ export class TurnoController {
   }
 
   @Get('cerrados-public')
+  @SkipThrottle()
   cerradosPublic() {
     return this.turnoService.listCerrados();
   }
 
   // Endpoint unificado público: activos + cerrados en una sola respuesta
   @Get('overview-public')
+  @SkipThrottle()
   overviewPublic() {
     return this.turnoService.listActivosYCerrados();
   }
