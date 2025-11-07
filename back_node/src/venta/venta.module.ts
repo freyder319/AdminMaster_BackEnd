@@ -6,9 +6,10 @@ import { VentaController } from './venta.controller';
 import { VentaService } from './venta.service';
 import { Producto } from 'src/producto/producto.entity';
 import { TurnoModule } from '../turno/turno.module';
+import { DescuentoEntity } from '../descuento/descuento.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Venta, VentaItem, Producto]), TurnoModule],
+  imports: [TypeOrmModule.forFeature([Venta, VentaItem, Producto, DescuentoEntity]), TurnoModule],
   controllers: [VentaController],
   providers: [VentaService],
   exports: [VentaService],

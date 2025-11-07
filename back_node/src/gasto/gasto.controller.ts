@@ -6,7 +6,9 @@ import { TurnoLogService } from '../turno/turno-log.service';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TurnoService } from '../turno/turno.service';
+import { Roles } from '../auth/roles.decorator';
 
+@UseGuards(JwtAuthGuard)
 @Controller('gasto')
 export class GastoController {
   constructor(
@@ -30,12 +32,12 @@ export class GastoController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Req() req: Request) {
     return this.gastoService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Req() req: Request, @Param('id') id: string) {
     return this.gastoService.findOne(Number(id));
   }
 

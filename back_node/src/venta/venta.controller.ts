@@ -1,15 +1,14 @@
 import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe, UseGuards, Req } from '@nestjs/common';
 import { VentaService } from './venta.service';
 import { CreateVentaDto } from './dto/create-venta.dto';
-import type { Response } from 'express';
+import type { Response, Request } from 'express';
 import { Res } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
-import type { Request } from 'express';
 import { TurnoActivoGuard } from '../turno/turno-activo.guard';
 import { TurnoLogService } from '../turno/turno-log.service';
 import { TurnoService } from '../turno/turno.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
+@UseGuards(JwtAuthGuard)
 @Controller('venta')
 export class VentaController {
   constructor(
@@ -34,6 +33,7 @@ export class VentaController {
 
   @Get()
   async list(
+    @Req() req: Request,
     @Query('forma_pago') forma_pago?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
