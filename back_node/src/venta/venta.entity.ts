@@ -23,4 +23,7 @@ export class Venta {
 
   @OneToMany(() => VentaItem, (item: VentaItem) => item.venta, { cascade: true })
   items!: VentaItem[];
+
+  @Column({ type: 'int', nullable: true })
+  descuentoId?: number | null;
 }

@@ -45,18 +45,14 @@ export class AuthService {
       const entidad = user ?? empleado;
       const rol = user ? user.rol : Rol.VentaPOS;
 
-      // console.log('Entidad encontrada:', entidad);
 
       if (!entidad || typeof entidad.contrasena !== 'string') {
         console.warn('Entidad no encontrada o contraseña inválida');
         return null;
       }
 
-      // console.log('Contraseña ingresada:', contrasena);
-      // console.log('Hash en base de datos:', entidad.contrasena);
-
       const isMatch = await bcrypt.compare(contrasena, entidad.contrasena);
-      console.log('¿Contraseña válida?', isMatch);
+      // Evitar logs de verificación de contraseña en producción
 
       if (!isMatch) {
         console.warn('La contraseña no coincide');

@@ -9,6 +9,7 @@ import { jwtConstants } from './constants';
 import { CajaModule } from 'src/caja/caja.module';
 import { MailModule } from 'src/mail/mail.module';
 import { EmpleadoModule } from 'src/empleado/empleado.module';
+import { AuditModule } from 'src/audit/audit.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EmpleadoModule } from 'src/empleado/empleado.module';
     CajaModule,
     UsersModule,
     PassportModule,
+    AuditModule,
     JwtModule.register({
       // Forzar uso de un único secreto durante diagnóstico para evitar firmas distintas
       secret: jwtConstants.secret,
