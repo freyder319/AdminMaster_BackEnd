@@ -19,6 +19,7 @@ import { GastoModule } from './gasto/gasto.module';
 import { VentaLibreModule } from './venta-libre/venta-libre.module';
 import { VentaModule } from './venta/venta.module';
 import { ReportModule } from './report/report.module';
+import { EstadisticasModule } from './estadisticas/estadisticas.module';
 import { DescuentoModule } from './descuento/descuento.module';
 import { PqrsModule } from './pqrs/pqrs.module';
 import { AuditModule } from './audit/audit.module';
@@ -75,6 +76,7 @@ import { ConfigService } from '@nestjs/config';
     VentaLibreModule,
     VentaModule,
     ReportModule,
+    EstadisticasModule,
     DescuentoModule,
     PqrsModule,
     AuditModule,
