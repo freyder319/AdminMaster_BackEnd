@@ -95,4 +95,20 @@ export class ProductoService {
       .getRawOne();
     return { total: Number(result.total) || 0 };
   }
+  async buscarPorCodigo(codigo: string): Promise<Producto | null> {
+    return this.productoRepo.findOne({ 
+      where: { codigoProducto: codigo },
+      relations: ['categoria']
+    });
+  }
+
+  async actualizarStock(id: number, nuevaCantidad: number): Promise<Producto> {
+    const producto = await this.productoRepo.findOne({ where: { id } });
+    if (!producto) {
+      throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    }
+    
+    producto.stockProducto = nuevaCantidad;
+    return this.productoRepo.save(producto);
+  }
 }

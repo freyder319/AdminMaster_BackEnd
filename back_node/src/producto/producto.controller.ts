@@ -50,4 +50,19 @@ export class ProductoController {
   remove(@Param('id') id: number) {
     return this.productoService.remove(id);
   }
+  @Get('buscar/:codigo')
+  buscarPorCodigo(@Param('codigo') codigo: string) {
+    return this.productoService.buscarPorCodigo(codigo);
+  }
+
+  @Put(':id/stock')
+  @UseGuards(JwtAuthGuard)
+  async updateStock(
+    @Param('id') id: string,
+    @Body() body: { stock: number }
+  ) {
+    const numericId = +id;
+    const producto = await this.productoService.actualizarStock(numericId, body.stock);
+    return producto;
+  }
 }
