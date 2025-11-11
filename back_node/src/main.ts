@@ -4,6 +4,7 @@ import * as express from 'express';
 import { join } from 'path';
 import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
+// Swagger removed per request
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

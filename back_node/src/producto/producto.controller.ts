@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Query } from '@nestjs/common';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
@@ -29,8 +29,31 @@ export class ProductoController {
 
   @Get()
   @SkipThrottle()
-  findAll() {
-    return this.productoService.findAll();
+  findAll(@Query('all') all?: string) {
+    const includeAll = String(all || '').toLowerCase() === 'true';
+    return this.productoService.findAll(includeAll);
+  }
+
+  @Get('paged')
+  @SkipThrottle()
+  findPaged(
+    @Query('page') page?: string,
+    @Query('size') size?: string,
+    @Query('sort') sort?: 'id' | 'nombreProducto' | 'precioUnitario' | 'estado',
+    @Query('order') order?: 'ASC' | 'DESC',
+    @Query('q') q?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('all') all?: string,
+  ) {
+    return this.productoService.findPaged({
+      page: page ? Number(page) : undefined,
+      size: size ? Number(size) : undefined,
+      sort,
+      order,
+      q,
+      categoryId: categoryId === '' || categoryId == null ? '' : Number(categoryId),
+      includeAll: String(all || '').toLowerCase() === 'true',
+    });
   }
 
   @Get(':id')
@@ -39,10 +62,22 @@ export class ProductoController {
     return this.productoService.findOne(+id);
   }
 
+  @Get(':id/can-delete')
+  @SkipThrottle()
+  canDelete(@Param('id') id: string) {
+    return this.productoService.canDelete(+id);
+  }
+
   @Put(':id')
   @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() updateProductoDto: UpdateProductoDto) {
     return this.productoService.update(+id, updateProductoDto);
+  }
+
+  @Put(':id/estado')
+  @UseGuards(JwtAuthGuard)
+  setEstado(@Param('id') id: string, @Body() body: { estado: boolean }) {
+    return this.productoService.setEstado(+id, !!body?.estado);
   }
 
   @Delete(':id')

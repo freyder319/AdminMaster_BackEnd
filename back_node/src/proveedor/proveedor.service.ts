@@ -34,8 +34,21 @@ export class ProveedorService {
   }
 
   async remove(id: number): Promise<{ deleted: boolean }> {
-    const result = await this.repo.delete(id);
-    if (!result.affected) throw new NotFoundException('Proveedor no encontrado');
-    return { deleted: true };
+    try {
+      const result = await this.repo.delete(id);
+      if (!result.affected) throw new NotFoundException('Proveedor no encontrado');
+      return { deleted: true };
+    } catch (err: any) {
+      const code = err?.code || err?.driverError?.code;
+      const detail = err?.detail || err?.driverError?.detail;
+      const isFk = code === '23503' || (typeof detail === 'string' && detail.toLowerCase().includes('llave foránea'));
+      if (isFk) {
+        throw new (await import('@nestjs/common')).BadRequestException({
+          code: '23503',
+          message: 'No se puede eliminar el proveedor porque tiene registros relacionados.'
+        } as any);
+      }
+      throw err;
+    }
   }
 }

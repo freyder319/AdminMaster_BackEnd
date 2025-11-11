@@ -28,4 +28,7 @@ export class Producto {
   @ManyToOne(() => categoria, categoria => categoria.productos)
   @JoinColumn({ name: 'idCategoria' })
   categoria?: categoria;
+
+  @Column({ name: 'estado', type: 'boolean', default: true })
+  estado!: boolean;
 }

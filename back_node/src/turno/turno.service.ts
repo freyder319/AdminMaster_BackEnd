@@ -94,22 +94,24 @@ export class TurnoService {
 
   async listActivos() {
     const activos = await this.turnoRepo.find({ where: { finTurno: IsNull() } });
-    const res: Array<{ usuarioId: number; correo: string; resumen: any }> = [];
+    const res: Array<{ usuarioId: number; correo: string; nombre?: string; apellido?: string; resumen: any }> = [];
     for (const t of activos) {
       const resumen = await this.composeResumen(this.dataSource.manager, t.id);
       const correo = await this.resolveCorreo(t.usuarioId);
-      res.push({ usuarioId: t.usuarioId, correo, resumen });
+      const { nombre, apellido } = await this.resolveNombre(t.usuarioId);
+      res.push({ usuarioId: t.usuarioId, correo, nombre, apellido, resumen });
     }
     return res;
   }
 
   async listCerrados() {
     const cerrados = await this.turnoRepo.find({ where: { finTurno: Not(IsNull()) }, order: { finTurno: 'DESC' as any } });
-    const res: Array<{ usuarioId: number; correo: string; resumen: any }> = [];
+    const res: Array<{ usuarioId: number; correo: string; nombre?: string; apellido?: string; resumen: any }> = [];
     for (const t of cerrados) {
       const resumen = await this.composeResumen(this.dataSource.manager, t.id);
       const correo = await this.resolveCorreo(t.usuarioId);
-      res.push({ usuarioId: t.usuarioId, correo, resumen });
+      const { nombre, apellido } = await this.resolveNombre(t.usuarioId);
+      res.push({ usuarioId: t.usuarioId, correo, nombre, apellido, resumen });
     }
     return res;
   }
@@ -132,6 +134,17 @@ export class TurnoService {
       if (empleado?.correo) return empleado.correo;
     } catch {}
     return '';
+  }
+
+  private async resolveNombre(usuarioId: number): Promise<{ nombre?: string; apellido?: string }> {
+    try {
+      const empleado = await this.empleadoService.findById(usuarioId);
+      if (empleado) {
+        return { nombre: (empleado as any).nombre || undefined, apellido: (empleado as any).apellido || undefined };
+      }
+    } catch {}
+    // Si en el futuro Usuario tiene campos de nombre, se pueden mapear aquí.
+    return {};
   }
 
   private async composeResumen(manager: any, turnoId: number) {
