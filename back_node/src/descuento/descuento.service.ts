@@ -53,7 +53,21 @@ export class DescuentoService {
   }
 
   async remove(id: number): Promise<{ deleted: boolean }> {
-    await this.repo.delete(id);
-    return { deleted: true };
+    try {
+      const res = await this.repo.delete(id);
+      if (!res.affected) throw new NotFoundException(`Descuento ${id} no encontrado`);
+      return { deleted: true };
+    } catch (err: any) {
+      const code = err?.code || err?.driverError?.code;
+      const detail = err?.detail || err?.driverError?.detail;
+      const isFk = code === '23503' || (typeof detail === 'string' && detail.toLowerCase().includes('llave foránea'));
+      if (isFk) {
+        throw new BadRequestException({
+          code: '23503',
+          message: 'No se puede eliminar el descuento porque tiene registros relacionados.'
+        });
+      }
+      throw err;
+    }
   }
 }

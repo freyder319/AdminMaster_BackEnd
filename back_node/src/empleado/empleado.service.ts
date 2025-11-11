@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Empleado } from './empleado.entity';
@@ -67,8 +67,22 @@ export class EmpleadoService {
   }
 
   async remove(id: number): Promise<{ deleted: boolean }> {
-    await this.empleadoRepo.delete(id);
-    return { deleted: true };
+    try {
+      const res = await this.empleadoRepo.delete(id);
+      if (!res.affected) throw new NotFoundException('Empleado no encontrado');
+      return { deleted: true };
+    } catch (err: any) {
+      const code = err?.code || err?.driverError?.code;
+      const detail = err?.detail || err?.driverError?.detail;
+      const isFk = code === '23503' || (typeof detail === 'string' && detail.toLowerCase().includes('llave foránea'));
+      if (isFk) {
+        throw new BadRequestException({
+          code: '23503',
+          message: 'No se puede eliminar el empleado porque tiene registros relacionados.'
+        });
+      }
+      throw err;
+    }
   }
 
   async findByUsername(correo: string): Promise<Empleado | null> {

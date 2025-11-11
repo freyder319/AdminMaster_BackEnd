@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CajaEntity } from './caja.entity';
@@ -25,8 +25,22 @@ export class CajaService {
     return caja;
   }
   async remove(id: number): Promise<{ deleted: boolean }> {
-    await this.cajaRepo.delete(id);
-    return { deleted: true };
+    try {
+      const res = await this.cajaRepo.delete(id);
+      if (!res.affected) throw new NotFoundException(`Caja ${id} no encontrada`);
+      return { deleted: true };
+    } catch (err: any) {
+      const code = err?.code || err?.driverError?.code;
+      const detail = err?.detail || err?.driverError?.detail;
+      const isFk = code === '23503' || (typeof detail === 'string' && detail.toLowerCase().includes('llave foránea'));
+      if (isFk) {
+        throw new BadRequestException({
+          code: '23503',
+          message: 'No se puede eliminar la caja porque está referenciada por otros registros.'
+        });
+      }
+      throw err;
+    }
   }
   findByCodigoWithUsuarios(codigoCaja: string): Promise<CajaEntity | null> {
     return this.cajaRepo.findOne({
