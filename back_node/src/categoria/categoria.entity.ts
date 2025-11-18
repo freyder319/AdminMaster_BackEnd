@@ -10,6 +10,6 @@ export class categoria {
   // Normalizado en minúsculas y trim para unicidad case-insensitive
   @Column({ name: 'nombreNormalizado', type: 'varchar', length: 110, unique: true, nullable: true })
   nombreNormalizado!: string | null;
-  @OneToMany(() => Producto, (producto) => producto.categoria)
-  productos!: Producto[];
+@OneToMany(() => Producto, (producto) => producto.categoria, { eager: false })
+productos?: Producto[];
 }

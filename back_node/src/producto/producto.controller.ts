@@ -30,9 +30,16 @@ export class ProductoController {
   @Get()
   @SkipThrottle()
   findAll(@Query('all') all?: string) {
-    const includeAll = String(all || '').toLowerCase() === 'true';
-    return this.productoService.findAll(includeAll);
+  const includeAll = String(all || '').toLowerCase() === 'true';
+  return this.productoService.findAll(includeAll);
   }
+@Get('public')
+async findPublic() {
+  const data = await this.productoService.findPublic();
+  console.log("Public products loaded:", data.length);
+  return data;
+}
+
 
   @Get('paged')
   @SkipThrottle()
