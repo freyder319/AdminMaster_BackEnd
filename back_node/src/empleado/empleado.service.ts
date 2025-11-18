@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Empleado } from './empleado.entity';
 import { CreateEmpleadoDto } from './dto/create-empleado.dto';
+import { UpdateEmpleadoDto } from './dto/update-empleado.dto';
 import { CajaEntity } from 'src/caja/caja.entity';
 
 @Injectable()
@@ -41,16 +42,21 @@ export class EmpleadoService {
     return this.empleadoRepo.find({ relations: ['caja'] });
   }
 
-  async update(id: number, dto: Partial<CreateEmpleadoDto>): Promise<Empleado> {
+  async update(id: number, dto: UpdateEmpleadoDto): Promise<Empleado> {
     const empleado = await this.empleadoRepo.findOne({ where: { id }, relations: ['caja'] });
     if (!empleado) throw new NotFoundException('Empleado no encontrado');
 
     if ('contrasena' in dto) delete dto.contrasena;
 
-    if ('cajaId' in dto && dto.cajaId !== undefined) {
-      const nuevaCaja = await this.cajaRepo.findOne({ where: { id: dto.cajaId } });
-      if (!nuevaCaja) throw new NotFoundException('Caja no encontrada');
-      empleado.caja = nuevaCaja;
+    if ('cajaId' in dto) {
+      if (dto.cajaId == null) {
+        // desasignar caja (inhabilitar)
+        (empleado as any).caja = null;
+      } else {
+        const nuevaCaja = await this.cajaRepo.findOne({ where: { id: dto.cajaId } });
+        if (!nuevaCaja) throw new NotFoundException('Caja no encontrada');
+        empleado.caja = nuevaCaja;
+      }
     }
 
     if ((dto as any).nombre !== undefined) (empleado as any).nombre = (dto as any).nombre;

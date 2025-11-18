@@ -40,9 +40,9 @@ import { ConfigService } from '@nestjs/config';
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
         host: String(cfg.get('DB_HOST') ?? 'localhost'),
-        port: Number(cfg.get('DB_PORT') ?? '5434'),
+        port: Number(cfg.get('DB_PORT') ?? '5432'),
         username: String(cfg.get('DB_USER') ?? 'postgres'),
-        password: String(cfg.get('DB_PASSWORD') ?? '514022'),
+        password: String(cfg.get('DB_PASSWORD') ?? 'Cristian2020CC'),
         database: String(cfg.get('DB_NAME') ?? 'postgres'),
         autoLoadEntities: true,
         synchronize: String(cfg.get('DB_SYNC') ?? 'true') === 'true',
