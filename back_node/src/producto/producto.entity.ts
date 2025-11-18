@@ -8,7 +8,6 @@ export class Producto {
   @Column({ name: 'codigoProducto', type: 'varchar', length: 50, unique: true })
   codigoProducto!: string;
 
-  // Para almacenar una imagen, mejor usar string (URL o base64)
   @Column({ name: 'imgProducto', type: 'text', nullable: true })
   imgProducto?: string;
 

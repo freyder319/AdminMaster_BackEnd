@@ -1,6 +1,6 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
-export class CreateProveedorDto {
+export class CreateClienteDto {
   @IsString()
   @Length(1, 100)
   nombre!: string;
@@ -12,13 +12,13 @@ export class CreateProveedorDto {
 
   @IsString()
   @MaxLength(20)
-  telefono!: string;
+  numero!: string;
 
   @IsEmail()
   @MaxLength(150)
   correo!: string;
 
   @IsOptional()
-  @IsBoolean()
-  activo?: boolean;
+  @IsIn(['activo', 'inactivo'])
+  estado?: string;
 }

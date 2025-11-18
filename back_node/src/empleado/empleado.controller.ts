@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Delete, Post, Body, Put, Query } from '@nestjs/common';
 import { EmpleadoService } from './empleado.service';
 import { CreateEmpleadoDto } from './dto/create-empleado.dto';
+import { UpdateEmpleadoDto } from './dto/update-empleado.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Empleado } from './empleado.entity';
@@ -19,7 +20,7 @@ export class EmpleadoController {
   }
 
   @Put(':id')
-  update(@Param('id') id: number, @Body() dto: Partial<CreateEmpleadoDto>) {
+  update(@Param('id') id: number, @Body() dto: UpdateEmpleadoDto) {
     return this.empleadoService.update(id, dto);
   }
 
