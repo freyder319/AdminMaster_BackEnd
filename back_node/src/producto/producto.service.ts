@@ -36,7 +36,15 @@ export class ProductoService {
     }
     return this.productoRepo.find({ where: { estado: true } as any, relations: ['categoria'], order: { id: 'ASC' as any } });
   }
-
+findPublic(): Promise<Producto[]> {
+  return this.productoRepo.find({
+    where: { estado: true },
+    relations: {
+      categoria: true    // Cargar SOLO la categoría
+    },
+    order: { id: 'ASC' }
+  });
+}
   async findPaged(options: {
     page?: number;
     size?: number;
