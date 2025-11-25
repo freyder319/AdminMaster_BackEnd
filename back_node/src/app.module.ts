@@ -28,6 +28,7 @@ import { AuditInterceptor } from './audit/audit.interceptor';
 // Rate limiting disabled: Throttler removed
 import { RolesGuard } from './auth/roles.guard';
 import { ConfigService } from '@nestjs/config';
+import { AgenteIaModule } from './agente-ia/agente-ia.module';
 
 @Module({
   imports: [
@@ -40,9 +41,9 @@ import { ConfigService } from '@nestjs/config';
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
         host: String(cfg.get('DB_HOST') ?? 'localhost'),
-        port: Number(cfg.get('DB_PORT') ?? '5432'),
+        port: Number(cfg.get('DB_PORT') ?? '5434'),
         username: String(cfg.get('DB_USER') ?? 'postgres'),
-        password: String(cfg.get('DB_PASSWORD') ?? 'Cristian2020CC'),
+        password: String(cfg.get('DB_PASSWORD') ?? '514022'),
         database: String(cfg.get('DB_NAME') ?? 'postgres'),
         autoLoadEntities: true,
         synchronize: String(cfg.get('DB_SYNC') ?? 'true') === 'true',
@@ -67,6 +68,7 @@ import { ConfigService } from '@nestjs/config';
     DescuentoModule,
     PqrsModule,
     AuditModule,
+    AgenteIaModule,
   ],
   controllers: [AppController],
   providers: [
