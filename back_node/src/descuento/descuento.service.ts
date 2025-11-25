@@ -2,12 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DescuentoEntity } from './descuento.entity';
+import { Venta } from '../venta/venta.entity';
 
 @Injectable()
 export class DescuentoService {
   constructor(
     @InjectRepository(DescuentoEntity)
     private readonly repo: Repository<DescuentoEntity>,
+    @InjectRepository(Venta)
+    private readonly ventaRepo: Repository<Venta>,
   ) {}
 
   async create(data: Partial<DescuentoEntity>): Promise<DescuentoEntity> {
@@ -20,7 +23,25 @@ export class DescuentoService {
     const existe = await this.repo.findOne({ where: { nombre } });
     if (existe) throw new BadRequestException('Descuento ya registrado');
     const creadoEn = data.creadoEn ? String(data.creadoEn) : String(Date.now());
-    const entity = this.repo.create({ nombre, porcentaje, creadoEn });
+
+    // Normalizar tipo y vigencia básica
+    const rawTipo = (data as any)?.tipo || 'PORCENTAJE';
+    const tipo = String(rawTipo).toUpperCase() === 'VALOR_FIJO' ? 'VALOR_FIJO' : 'PORCENTAJE';
+
+    const fechaInicio = data.fechaInicio ? new Date(data.fechaInicio) : undefined;
+    const fechaFin = data.fechaFin ? new Date(data.fechaFin) : undefined;
+
+    const activo = typeof data.activo === 'boolean' ? data.activo : true;
+
+    const entity = this.repo.create({
+      nombre,
+      porcentaje,
+      creadoEn,
+      tipo,
+      fechaInicio: fechaInicio && !isNaN(fechaInicio.getTime()) ? fechaInicio : undefined,
+      fechaFin: fechaFin && !isNaN(fechaFin.getTime()) ? fechaFin : undefined,
+      activo,
+    });
     return this.repo.save(entity);
   }
 
@@ -49,11 +70,43 @@ export class DescuentoService {
       }
       item.porcentaje = porcentaje;
     }
+
+    if (typeof (changes as any).tipo !== 'undefined') {
+      const rawTipo = (changes as any).tipo;
+      const tipo = String(rawTipo).toUpperCase();
+      if (tipo !== 'PORCENTAJE' && tipo !== 'VALOR_FIJO') {
+        throw new BadRequestException('Tipo de promoción inválido');
+      }
+      item.tipo = tipo as any;
+    }
+
+    if (typeof changes.fechaInicio !== 'undefined') {
+      const d = changes.fechaInicio ? new Date(changes.fechaInicio) : undefined;
+      item.fechaInicio = d && !isNaN(d.getTime()) ? d : null;
+    }
+
+    if (typeof changes.fechaFin !== 'undefined') {
+      const d = changes.fechaFin ? new Date(changes.fechaFin) : undefined;
+      item.fechaFin = d && !isNaN(d.getTime()) ? d : null;
+    }
+
+    if (typeof changes.activo !== 'undefined') {
+      item.activo = !!changes.activo;
+    }
     return this.repo.save(item);
   }
 
   async remove(id: number): Promise<{ deleted: boolean }> {
     try {
+      // Verificar explícitamente si hay ventas usando este descuento
+      const relacionado = await this.ventaRepo.count({ where: { descuentoId: id } });
+      if (relacionado > 0) {
+        throw new BadRequestException({
+          code: 'VENTA_DESCUENTO_RELACIONADO',
+          message: 'No se puede eliminar el descuento porque está vinculado a una o más ventas.',
+        });
+      }
+
       const res = await this.repo.delete(id);
       if (!res.affected) throw new NotFoundException(`Descuento ${id} no encontrado`);
       return { deleted: true };

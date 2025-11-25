@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, UsePipes, ValidationPipe, Req } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, UsePipes, ValidationPipe, Req, Get } from '@nestjs/common';
 import { VentaLibreService } from './venta-libre.service';
 import { CreateVentaLibreDto } from './dto/create-venta-libre.dto';
 import type { Request } from 'express';
@@ -22,5 +22,11 @@ export class VentaLibreController {
     (dto as any).usuario_id = tieneUid ? uid : (dto as any).usuario_id ?? null;
     (dto as any).turno_id = turno?.id ?? (dto as any).turno_id ?? null;
     return this.service.create(dto);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async findAll() {
+    return this.service.findAll();
   }
 }

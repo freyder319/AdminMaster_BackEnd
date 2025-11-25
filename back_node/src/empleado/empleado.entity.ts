@@ -12,11 +12,17 @@ export class Empleado {
   @Column({ type: 'varchar', length: 100, default: '' })
   apellido!: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  documento?: string;
+
   @Column({ unique: true })
   correo!: string;
 
   @Column()
   contrasena!: string;
+
+  @Column({ type: 'varchar', length: 20, default: 'INACTIVO' })
+  estado!: string;
 
   @Column({ unique: true, nullable: false })
   telefono?: string;

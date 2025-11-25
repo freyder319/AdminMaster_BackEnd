@@ -107,6 +107,31 @@ export class AuthController {
     return { mensaje: 'Contraseña actualizada correctamente' };
   }
 
+  @Post('empleado/activar')
+  async activarEmpleado(@Body() body: { correo: string; codigo: string; nueva: string }) {
+    const correo = (body.correo || '').trim().toLowerCase();
+    const codigo = (body.codigo || '').toString().trim().toUpperCase();
+    const nueva = body.nueva;
+
+    if (!correo || !codigo || !nueva) {
+      throw new BadRequestException('Datos incompletos para activación');
+    }
+
+    const verificacion = this.authService.verificarCodigoCorreoDetalle(correo, codigo);
+    if (!verificacion.ok) {
+      if (verificacion.reason === 'expired') throw new BadRequestException('El enlace o código de activación ha expirado');
+      throw new BadRequestException('Código de activación inválido');
+    }
+
+    const empleado = await this.empleadoService.findByCorreo(correo);
+    if (!empleado) {
+      throw new NotFoundException('Empleado no encontrado para este correo');
+    }
+
+    await this.empleadoService.actualizarContrasena(empleado.id, nueva);
+    return { mensaje: 'Cuenta de empleado activada correctamente' };
+  }
+
   @Post('recuperar-correo')
   async recuperarPorCorreo(@Body() body: { correo: string }) {
     if (!body || typeof body.correo !== 'string') {
@@ -156,5 +181,18 @@ export class AuthController {
     return { mensaje: 'Se ha enviado un código de verificación al correo' };
   }
 
-  
+  @Post('enviar-activacion-empleado')
+  async enviarCorreoActivacionEmpleado(@Body('correo') correo: string) {
+    const normalizado = correo.trim().toLowerCase();
+
+    const empleado = await this.empleadoService.findByCorreo(normalizado);
+    if (!empleado) {
+      throw new NotFoundException('Correo de empleado no registrado');
+    }
+
+    const token = await this.authService.generarTokenRecuperacion(empleado.id, 'empleado');
+    await this.mailService.enviarCorreoActivacionEmpleado(normalizado, token);
+
+    return { mensaje: 'Se ha enviado un código de activación al correo del empleado' };
+  }
 }

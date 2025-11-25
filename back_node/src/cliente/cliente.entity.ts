@@ -13,6 +13,8 @@ export class ClienteEntity {
   nombre!: string;
   @Column({ type: 'varchar', length: 50 })
   apellido!: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  documento?: string;
   @Column({ type: 'varchar', length: 10 })
   numero!: string;
   @Column({ type: 'varchar', length: 50, unique: true })

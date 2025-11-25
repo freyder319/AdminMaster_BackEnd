@@ -11,6 +11,10 @@ import { TurnoLog } from './turno-log.entity';
 import { Venta } from '../venta/venta.entity';
 import { VentaLibre } from '../venta-libre/venta-libre.entity';
 import { GastoEntity } from '../gasto/gasto.entity';
+import { AsignacionCajaTurno } from './asignacion-caja-turno.entity';
+import { AuditoriaCaja } from './auditoria-caja.entity';
+import { CajaService } from '../caja/caja.service';
+import { RegistroTurno } from './registro-turno.entity';
 
 @Injectable()
 export class TurnoService {
@@ -22,8 +26,11 @@ export class TurnoService {
     @InjectRepository(Venta) private readonly ventaRepo: Repository<Venta>,
     @InjectRepository(VentaLibre) private readonly ventaLibreRepo: Repository<VentaLibre>,
     @InjectRepository(GastoEntity) private readonly gastoRepo: Repository<GastoEntity>,
+    @InjectRepository(AsignacionCajaTurno) private readonly asignacionRepo: Repository<AsignacionCajaTurno>,
+    @InjectRepository(AuditoriaCaja) private readonly auditoriaRepo: Repository<AuditoriaCaja>,
     private readonly usuarioService: UsuarioService,
     private readonly empleadoService: EmpleadoService,
+    private readonly cajaService: CajaService,
   ) {}
 
   async getTurnoActivo(usuarioId: number) {
@@ -41,6 +48,14 @@ export class TurnoService {
     if (activo) throw new BadRequestException('Ya existe un turno activo');
 
     return this.dataSource.transaction(async (manager) => {
+      let registro: RegistroTurno | null = null;
+      if (dto.registroTurnoId) {
+        registro = await manager.findOne(RegistroTurno, { where: { id: dto.registroTurnoId } });
+        if (!registro) {
+          throw new BadRequestException('Registro de turno no encontrado');
+        }
+      }
+
       const apertura = manager.create(CajaMovimiento, {
         usuarioId,
         tipo: 'APERTURA',
@@ -50,10 +65,35 @@ export class TurnoService {
 
       const turno = manager.create(Turno, {
         usuarioId,
-        observaciones: dto.observaciones,
+        observaciones: dto.observaciones ?? (registro ? registro.notas || undefined : undefined),
         aperturaCajaId: apertura.id,
       });
       await manager.save(Turno, turno);
+
+      let cajaId: number | null = null;
+      try {
+        const caja = await this.cajaService.findCajaByUsuarioId(usuarioId, false);
+        if (caja) {
+          cajaId = caja.id;
+        } else {
+          const cajaEmpleado = await this.cajaService.findCajaByUsuarioId(usuarioId, true);
+          cajaId = cajaEmpleado ? cajaEmpleado.id : null;
+        }
+      } catch {}
+
+      const asignacion = manager.create(AsignacionCajaTurno, {
+        usuarioId,
+        empleadoId: null,
+        cajaId,
+        turnoId: turno.id,
+        horaLiberacion: null,
+      });
+      await manager.save(AsignacionCajaTurno, asignacion);
+
+      if (registro) {
+        registro.turnoId = turno.id;
+        await manager.save(RegistroTurno, registro);
+      }
 
       return this.composeResumen(manager, turno.id);
     });
@@ -73,7 +113,33 @@ export class TurnoService {
 
       await manager.update(Turno, { id: activo.id }, { finTurno: new Date(), cierreCajaId: cierre.id });
 
-      return this.composeResumen(manager, activo.id);
+      const asignacion = await manager.findOne(AsignacionCajaTurno, { where: { turnoId: activo.id, horaLiberacion: IsNull() } });
+      if (asignacion) {
+        asignacion.horaLiberacion = new Date();
+        await manager.save(AsignacionCajaTurno, asignacion);
+      }
+
+      const resumen = await this.composeResumen(manager, activo.id);
+
+      const saldoInicial = resumen.aperturaCaja ? Number(resumen.aperturaCaja.montoInicial || 0) : 0;
+      const saldoFinal = resumen.cierreCaja ? Number(resumen.cierreCaja.montoFinal || dto.montoFinal || 0) : Number(dto.montoFinal || 0);
+      const totalVentas = Number(resumen.actividad.totalVentas || 0) + Number(resumen.actividad.totalVentasLibres || 0);
+      const totalGastos = Number(resumen.actividad.totalGastos || 0);
+      const saldoEsperado = saldoInicial + totalVentas - totalGastos;
+      const diferencia = saldoFinal - saldoEsperado;
+
+      const auditoria = manager.create(AuditoriaCaja, {
+        turnoId: activo.id,
+        usuarioId,
+        cajaId: asignacion ? asignacion.cajaId : null,
+        saldoInicial,
+        saldoFinal,
+        saldoEsperado,
+        diferencia,
+      });
+      await manager.save(AuditoriaCaja, auditoria);
+
+      return resumen;
     });
   }
 
@@ -86,10 +152,65 @@ export class TurnoService {
     return this.composeResumen(this.dataSource.manager, turno.id);
   }
 
+  async listAuditoriaCaja(params: {
+    from?: string;
+    to?: string;
+    usuarioId?: number;
+    cajaId?: number;
+  }) {
+    const qb = this.auditoriaRepo.createQueryBuilder('a');
+
+    if (params.usuarioId) {
+      qb.andWhere('a.usuarioId = :uid', { uid: params.usuarioId });
+    }
+    if (params.cajaId) {
+      qb.andWhere('a.cajaId = :cid', { cid: params.cajaId });
+    }
+    if (params.from) {
+      qb.andWhere('a.fechaHoraCierre >= :from', { from: new Date(params.from) });
+    }
+    if (params.to) {
+      const to = new Date(params.to);
+      to.setHours(23, 59, 59, 999);
+      qb.andWhere('a.fechaHoraCierre <= :to', { to });
+    }
+
+    qb.orderBy('a.fechaHoraCierre', 'DESC');
+    return qb.getMany();
+  }
+
   async getResumenPorEmpleado(empleadoId: number) {
     const activo = await this.getTurnoActivo(empleadoId);
     if (activo) return this.composeResumen(this.dataSource.manager, activo.id);
     return this.getUltimoTurno(empleadoId);
+  }
+
+  async reporteHorasPorEmpleado(params?: { from?: string; to?: string }) {
+    const qb = this.turnoRepo.createQueryBuilder('t');
+
+    qb.select('t.usuarioId', 'usuarioId')
+      .addSelect(
+        "COALESCE(SUM(EXTRACT(EPOCH FROM (t.finTurno - t.inicioTurno)) / 3600), 0)",
+        'horasTrabajadas',
+      )
+      .where('t.finTurno IS NOT NULL');
+
+    if (params?.from) {
+      qb.andWhere('t.inicioTurno >= :from', { from: new Date(params.from) });
+    }
+    if (params?.to) {
+      const to = new Date(params.to);
+      to.setHours(23, 59, 59, 999);
+      qb.andWhere('t.finTurno <= :to', { to });
+    }
+
+    qb.groupBy('t.usuarioId').orderBy('"horasTrabajadas"', 'DESC');
+
+    const rows = await qb.getRawMany<{ usuarioId: number; horasTrabajadas: string }>();
+    return rows.map(r => ({
+      usuarioId: Number(r.usuarioId),
+      horasTrabajadas: Number(r.horasTrabajadas || 0),
+    }));
   }
 
   async listActivos() {
@@ -159,13 +280,16 @@ export class TurnoService {
       : null;
 
     // Ventas del turno: totales y conteo
-    const ventas = await this.ventaRepo.find({ where: { turnoId }, select: ['id', 'total'] as any });
+    const ventas = await this.ventaRepo.find({
+      where: { turnoId },
+      relations: ['items', 'items.producto'],
+    });
     let totalVentas = 0;
     for (const v of ventas) totalVentas += Number((v as any).total || 0);
     const transacciones = ventas.length;
 
     // Ventas libres del turno: totales y conteo
-    const ventasLibres = await this.ventaLibreRepo.find({ where: { turno_id: turnoId }, select: ['id', 'total'] as any });
+    const ventasLibres = await this.ventaLibreRepo.find({ where: { turno_id: turnoId } });
     let totalVentasLibres = 0;
     for (const v of ventasLibres) totalVentasLibres += Number((v as any).total || 0);
     const transaccionesLibres = ventasLibres.length;
@@ -198,9 +322,45 @@ export class TurnoService {
         transaccionesLibres,
         totalGastos,
         cantidadGastos,
-        // listas resumidas
-        ventas: ventas.map(v => ({ id: (v as any).id, total: Number((v as any).total || 0) })),
-        ventasLibres: ventasLibres.map(v => ({ id: (v as any).id, total: Number((v as any).total || 0) })),
+        // listas resumidas (incluyen todos los productos cuando aplica)
+        ventas: ventas.map((v: any) => {
+          const productos = Array.isArray(v.items)
+            ? v.items.map((item: any) => ({
+                nombre: item?.producto?.nombreProducto ?? null,
+                cantidad: item?.cantidad ?? null,
+                subtotal: Number(item?.subtotal || 0),
+              }))
+            : [];
+          const item0 = productos.length > 0 ? productos[0] : null;
+          const nombre = item0?.nombre ?? null;
+          const cantidad = item0?.cantidad ?? null;
+          return {
+            id: v.id,
+            total: Number(v.total || 0),
+            nombre,
+            cantidad,
+            productos,
+          };
+        }),
+        ventasLibres: ventasLibres.map((v: any) => {
+          const productos = Array.isArray(v.productos)
+            ? v.productos.map((p: any) => ({
+                nombre: p?.nombre ?? null,
+                cantidad: p?.cantidad ?? null,
+                subtotal: Number(p?.subtotal || 0),
+              }))
+            : [];
+          const prod0 = productos.length > 0 ? productos[0] : null;
+          const nombre = prod0?.nombre ?? null;
+          const cantidad = prod0?.cantidad ?? null;
+          return {
+            id: v.id,
+            total: Number(v.total || 0),
+            nombre,
+            cantidad,
+            productos,
+          };
+        }),
         gastos: gastos.map(g => ({ id: (g as any).id, monto: Number((g as any).monto || 0), nombre: (g as any).nombre || null, forma_pago: (g as any).forma_pago || null })),
       },
       actividadLogs: { countsByTipo, ultimos: logs },

@@ -38,13 +38,18 @@ export class EmpleadoController {
   async verificarEmpleado(
     @Query('correo') correo: string,
     @Query('telefono') telefono: string,
-  ): Promise<{ correo: boolean; telefono: boolean }> {
-    const correoExiste = await this.empleadoRepo.findOne({ where: { correo } });
-    const telefonoExiste = await this.empleadoRepo.findOne({ where: { telefono } });
+    @Query('documento') documento?: string,
+  ): Promise<{ correo: boolean; telefono: boolean; documento: boolean }> {
+    const [correoExiste, telefonoExiste, documentoExiste] = await Promise.all([
+      correo ? this.empleadoRepo.findOne({ where: { correo } }) : Promise.resolve(null),
+      telefono ? this.empleadoRepo.findOne({ where: { telefono } }) : Promise.resolve(null),
+      documento ? this.empleadoRepo.findOne({ where: { documento } }) : Promise.resolve(null),
+    ]);
 
     return {
       correo: !!correoExiste,
       telefono: !!telefonoExiste,
+      documento: !!documentoExiste,
     };
   }
 

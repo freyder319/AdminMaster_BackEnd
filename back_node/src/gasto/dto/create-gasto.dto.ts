@@ -30,10 +30,15 @@ export class CreateGastoDto {
   forma_pago!: string;
 
   @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  transaccionId?: string;
+
+  @IsOptional()
   @IsInt()
   usuarioId?: number;
 
   @IsNotEmpty()
-  @IsIn(['confirmado', 'pendiente', 'anulado'])
+  @IsIn(['confirmado', 'pendiente'])
   estado!: string;
 }

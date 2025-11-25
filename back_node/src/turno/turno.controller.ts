@@ -1,13 +1,17 @@
-import { Controller, Get, Param, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, UseGuards, Req, Query, Delete } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { TurnoService } from './turno.service';
+import { RegistroTurnoService } from './registro-turno.service';
 import { IniciarTurnoDto } from './dto/iniciar-turno.dto';
 import { CerrarTurnoDto } from './dto/cerrar-turno.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('turno')
 export class TurnoController {
-  constructor(private readonly turnoService: TurnoService) {}
+  constructor(
+    private readonly turnoService: TurnoService,
+    private readonly registroTurnoService: RegistroTurnoService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('iniciar')
@@ -73,10 +77,61 @@ export class TurnoController {
     return this.turnoService.listCerrados();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('auditoria')
+  listAuditoria(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('usuarioId') usuarioId?: string,
+    @Query('cajaId') cajaId?: string,
+  ) {
+    return this.turnoService.listAuditoriaCaja({
+      from,
+      to,
+      usuarioId: usuarioId ? Number(usuarioId) : undefined,
+      cajaId: cajaId ? Number(cajaId) : undefined,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('horas-por-empleado')
+  reporteHorasPorEmpleado(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.turnoService.reporteHorasPorEmpleado({ from, to });
+  }
+
   // Endpoint unificado público: activos + cerrados en una sola respuesta
   @Get('overview-public')
   @SkipThrottle()
   overviewPublic() {
     return this.turnoService.listActivosYCerrados();
   }
+
+  // --- Registro simple de turnos del día (mañana / tarde, sin empleado) ---
+
+  @UseGuards(JwtAuthGuard)
+  @Post('registro')
+  crearRegistro(@Body() body: { fecha?: string; bloque: 'manana' | 'tarde' | 'noche'; notas?: string; horaDesde?: string; horaHasta?: string }) {
+    return this.registroTurnoService.create({
+      fecha: body.fecha,
+      bloque: body.bloque,
+      notas: body.notas,
+      horaDesde: body.horaDesde,
+      horaHasta: body.horaHasta,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('registro')
+  listarRegistro(@Query('fecha') fecha: string) {
+    return this.registroTurnoService.listByFecha(fecha);
+  }
+
+   @UseGuards(JwtAuthGuard)
+   @Delete('registro/:id')
+   eliminarRegistro(@Param('id') id: string) {
+     return this.registroTurnoService.delete(Number(id));
+   }
 }

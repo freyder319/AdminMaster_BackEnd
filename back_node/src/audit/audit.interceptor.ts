@@ -78,6 +78,28 @@ export class AuditInterceptor implements NestInterceptor {
 
     let details = sanitize(req?.body);
 
+    // Enriquecer detalles con información básica del usuario (si está disponible)
+    try {
+      const user: any = req?.user || null;
+      if (user && (actorUserId != null || user.id != null)) {
+        if (!details || typeof details !== 'object') details = {} as any;
+        const nombre = user.nombre ?? user.empleadoNombre ?? null;
+        const apellido = user.apellido ?? user.empleadoApellido ?? null;
+        const correo = user.correo ?? null;
+        const actorUser = {
+          id: actorUserId ?? user.id ?? null,
+          rol: actorRol ?? user.rol ?? null,
+          nombre,
+          apellido,
+          correo,
+        };
+        (details as any).actorUser = actorUser;
+        if (nombre || apellido) {
+          (details as any).actorNombre = `${nombre || ''} ${apellido || ''}`.trim();
+        }
+      }
+    } catch {}
+
     // Enriquecer detalles para categoria con nombre, para no depender del ID
     if (module === 'categoria') {
       try {
