@@ -25,8 +25,10 @@ export class EmpleadoService {
     const empleado = this.empleadoRepo.create({
       nombre: (dto as any).nombre,
       apellido: (dto as any).apellido,
+      documento: (dto as any).documento,
       correo: dto.correo,
-      contrasena: dto.contrasena,
+      contrasena: '',
+      estado: 'INACTIVO',
       telefono: dto.telefono,
       caja: caja,
     });
@@ -103,5 +105,18 @@ export class EmpleadoService {
 
   async findById(id: number): Promise<Empleado | null> {
     return this.empleadoRepo.findOne({ where: { id } });
+  }
+
+  async actualizarContrasena(id: number, nueva: string): Promise<void> {
+    const empleado = await this.empleadoRepo.findOne({ where: { id } });
+    if (!empleado) throw new NotFoundException('Empleado no encontrado');
+
+    const bcrypt = await import('bcrypt');
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(nueva, salt);
+
+    empleado.contrasena = hash;
+    (empleado as any).estado = 'ACTIVO';
+    await this.empleadoRepo.save(empleado);
   }
 }

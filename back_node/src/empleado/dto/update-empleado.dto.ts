@@ -12,6 +12,11 @@ export class UpdateEmpleadoDto {
   apellido?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  documento?: string;
+
+  @IsOptional()
   @IsEmail()
   correo?: string;
 

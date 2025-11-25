@@ -45,6 +45,11 @@ export class AuthService {
       const entidad = user ?? empleado;
       const rol = user ? user.rol : Rol.VentaPOS;
 
+      // Si es empleado y no tiene contraseña registrada, se considera cuenta no activada
+      if (empleado && (!empleado.contrasena || String(empleado.contrasena).trim().length === 0)) {
+        throw new UnauthorizedException('La cuenta del empleado aún no ha sido activada');
+      }
+
 
       if (!entidad || typeof entidad.contrasena !== 'string') {
         console.warn('Entidad no encontrada o contraseña inválida');
@@ -62,6 +67,12 @@ export class AuthService {
       const { contrasena: _, ...rest } = entidad;
       return { ...rest, rol, origen: user ? 'usuario' : 'empleado' };
     } catch (error: unknown) {
+      // Si es un UnauthorizedException (por ejemplo cuenta de empleado no activada),
+      // lo volvemos a lanzar para que llegue al controlador y al frontend con su mensaje.
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       console.error('Error al validar entidad:', error instanceof Error ? error.message : error);
       return null;
     }

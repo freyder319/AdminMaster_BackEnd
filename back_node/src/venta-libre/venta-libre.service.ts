@@ -27,4 +27,8 @@ export class VentaLibreService {
     const saved = await this.repo.save(entity);
     return { id: saved.id };
   }
+
+  async findAll(): Promise<VentaLibre[]> {
+    return this.repo.find({ order: { id: 'DESC' } as any });
+  }
 }

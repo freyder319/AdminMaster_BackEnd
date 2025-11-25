@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, Length, MaxLength, Matches } from 'class-validator';
 
 export class UpdateClienteDto {
   @IsOptional()
@@ -15,6 +15,12 @@ export class UpdateClienteDto {
   @IsString()
   @MaxLength(20)
   numero?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(10, 10)
+  @Matches(/^\d+$/)
+  documento?: string;
 
   @IsOptional()
   @IsEmail()

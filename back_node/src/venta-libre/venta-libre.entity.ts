@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export type EstadoVenta = 'confirmada' | 'pendiente' | 'anulada';
+export type EstadoVenta = 'confirmada' | 'pendiente';
 export type FormaPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'nequi' | 'daviplata' | 'otros';
 
 @Entity({ name: 'venta_libre' })
@@ -25,6 +25,9 @@ export class VentaLibre {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   forma_pago!: FormaPago | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  transaccionId!: string | null;
 
   @Column({ type: 'int', nullable: true })
   usuario_id!: number | null;

@@ -205,7 +205,12 @@ findPublic(): Promise<Producto[]> {
       throw new NotFoundException(`Producto con id ${id} no encontrado`);
     }
     
-    producto.stockProducto = nuevaCantidad;
+    const cantidad = Number(nuevaCantidad);
+    if (!Number.isFinite(cantidad) || cantidad < 0 || cantidad > 500) {
+      throw new BadRequestException('El stock debe estar entre 0 y 500 unidades.');
+    }
+
+    producto.stockProducto = cantidad;
     return this.productoRepo.save(producto);
   }
 }

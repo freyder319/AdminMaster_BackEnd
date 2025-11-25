@@ -42,6 +42,30 @@ export class VentaController {
     return this.service.findAll({ forma_pago, from, to, limit: limit ? Number(limit) : undefined });
   }
 
+  @Get('por-empleado')
+  async ventasPorEmpleado(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.service.reporteVentasPorEmpleado({ from, to });
+  }
+
+  @Get('por-producto')
+  async ventasPorProducto(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.service.reporteVentasPorProducto({ from, to });
+  }
+
+  @Get('por-categoria')
+  async ventasPorCategoria(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.service.reporteVentasPorCategoria({ from, to });
+  }
+
   @Get('report')
   async report(
     @Res() res: Response,

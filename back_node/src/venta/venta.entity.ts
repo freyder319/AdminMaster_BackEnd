@@ -1,5 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { VentaItem } from './venta-item.entity';
+import { ClienteEntity } from '../cliente/cliente.entity';
+
+export type EstadoVenta = 'confirmada' | 'pendiente';
 
 @Entity('ventas')
 export class Venta {
@@ -12,6 +15,12 @@ export class Venta {
   @Column({ name: 'forma_pago', type: 'varchar', length: 20 })
   forma_pago!: 'efectivo' | 'tarjeta' | 'transferencia' | 'nequi' | 'daviplata' | 'otros';
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  transaccionId?: string | null;
+
+  @Column({ type: 'varchar', length: 20, default: 'confirmada' })
+  estado!: EstadoVenta;
+
   @CreateDateColumn({ name: 'fecha_hora' })
   fecha_hora!: Date;
 
@@ -20,6 +29,13 @@ export class Venta {
 
   @Column({ type: 'int', nullable: true })
   turnoId?: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  clienteId?: number | null;
+
+  @ManyToOne(() => ClienteEntity, { nullable: true })
+  @JoinColumn({ name: 'clienteId' })
+  cliente?: ClienteEntity | null;
 
   @OneToMany(() => VentaItem, (item: VentaItem) => item.venta, { cascade: true })
   items!: VentaItem[];

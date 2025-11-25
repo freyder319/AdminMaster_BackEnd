@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsString, Length } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsNumber, IsString, Length, MaxLength } from 'class-validator';
 
 export class CreateEmpleadoDto {
   @IsString()
@@ -9,12 +9,13 @@ export class CreateEmpleadoDto {
   @Length(1, 100)
   apellido!: string;
 
+  @IsString()
+  @MaxLength(50)
+  documento!: string;
+
   @IsEmail()
   @IsNotEmpty()
   correo!: string;
-
-  @IsNotEmpty()
-  contrasena!: string;
 
   @IsNotEmpty()
   telefono!: string;

@@ -48,4 +48,38 @@ export class MailService {
       throw new Error('No se pudo enviar el correo de recuperación');
     }
   }
+
+  async enviarCorreoActivacionEmpleado(correo: string, token: string): Promise<void> {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+      const enlace = `${frontendUrl}/activar-empleado?correo=${encodeURIComponent(correo)}&codigo=${encodeURIComponent(token)}`;
+
+      await this.transporter.sendMail({
+        from: `"AdminMaster" <${process.env.MAIL_USER}>`,
+        to: correo,
+        subject: 'Activación de cuenta de empleado',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #2c3e50;">Bienvenido a AdminMaster</h2>
+            <p>Hola, ${correo}</p>
+            <p>Para activar tu cuenta y crear tu contraseña, haz clic en el siguiente enlace:</p>
+            <p style="margin: 16px 0;">
+              <a href="${enlace}" style="background:#2980b9;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Activar mi Cuenta</a>
+            </p>
+            <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+            <p style="font-size: 12px; word-break: break-all;">${enlace}</p>
+            <p style="color:#c0392b; font-weight: 600;">Este enlace expira en 5 minutos.</p>
+            <br>
+            <p style="font-size: 12px; color: #7f8c8d;">Si no esperabas este correo, puedes ignorarlo.</p>
+          </div>
+        `,
+      });
+
+      this.logger.log(`Correo de activación de empleado enviado a ${correo}`);
+    } catch (error: unknown) {
+      const mensaje = error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(`Error al enviar correo de activación a ${correo}: ${mensaje}`);
+      throw new Error('No se pudo enviar el correo de activación');
+    }
+  }
 }

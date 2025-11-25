@@ -27,8 +27,8 @@ export class CreateVentaLibreDto {
   @Length(1, 150)
   nombre!: string;
 
-  @IsIn(['confirmada', 'pendiente', 'anulada'])
-  estado!: 'confirmada' | 'pendiente' | 'anulada';
+  @IsIn(['confirmada', 'pendiente'])
+  estado!: 'confirmada' | 'pendiente';
 
   @IsOptional()
   @IsDateString()
@@ -47,6 +47,11 @@ export class CreateVentaLibreDto {
   @IsOptional()
   @IsIn(['efectivo', 'tarjeta', 'transferencia', 'nequi', 'daviplata', 'otros'])
   forma_pago?: 'efectivo' | 'tarjeta' | 'transferencia' | 'nequi' | 'daviplata' | 'otros';
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  transaccionId?: string;
 
   @IsOptional()
   @Type(() => Number)

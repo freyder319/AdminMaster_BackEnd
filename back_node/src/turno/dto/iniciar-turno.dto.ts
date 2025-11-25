@@ -8,4 +8,8 @@ export class IniciarTurnoDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @IsOptional()
+  @IsNumber()
+  registroTurnoId?: number;
 }

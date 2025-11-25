@@ -28,16 +28,31 @@ export class ClienteService {
     const cliente = this.clienteRepo.create(data);
     return this.clienteRepo.save(cliente);
   }
+  async verificarExistencia(correo?: string, numero?: string, documento?: string): Promise<{ correo: boolean; numero: boolean; documento: boolean }> {
+    const [exCorreo, exNumero, exDocumento] = await Promise.all([
+      correo ? this.clienteRepo.findOne({ where: { correo } }) : Promise.resolve(null),
+      numero ? this.clienteRepo.findOne({ where: { numero } }) : Promise.resolve(null),
+      documento ? this.clienteRepo.findOne({ where: { documento } }) : Promise.resolve(null),
+    ]);
+    return {
+      correo: !!exCorreo,
+      numero: !!exNumero,
+      documento: !!exDocumento,
+    };
+  }
   async update(id: number, data: Partial<ClienteEntity>): Promise<ClienteEntity> {
     const cliente = await this.clienteRepo.findOneBy({ id });
     if (!cliente) {
       throw new Error(`cliente con id ${id} no encontrado`);
     }
-    const clienteExistente = await this.clienteRepo.findOne({
-      where: { correo: data.correo },
-    });
-    if (clienteExistente?.id !== cliente.id) {
-      throw new BadRequestException('El Correo ya se Encuentra Registrado');
+    // Solo validar correo duplicado si realmente se está intentando cambiar el correo
+    if (data.correo && data.correo !== cliente.correo) {
+      const clienteExistente = await this.clienteRepo.findOne({
+        where: { correo: data.correo },
+      });
+      if (clienteExistente && clienteExistente.id !== cliente.id) {
+        throw new BadRequestException('El Correo ya se Encuentra Registrado');
+      }
     }
     await this.clienteRepo.update(id, data);
     return cliente;

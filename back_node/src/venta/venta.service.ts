@@ -44,12 +44,21 @@ export class VentaService {
     // Calcular total de items
     const itemsTotal = dto.items.reduce((sum, it) => sum + Number(it.subtotal), 0);
 
-    // Aplicar descuento si corresponde
+    // Aplicar descuento si corresponde y si la promoción está activa/vigente
     let descuentoPercent = 0;
     if (dto.descuentoId) {
       const desc = await this.descuentoRepo.findOne({ where: { id: dto.descuentoId } });
       if (desc) {
-        descuentoPercent = Math.max(0, Math.min(100, Number(desc.porcentaje)));
+        const ahora = new Date();
+        const dentroInicio = !desc.fechaInicio || desc.fechaInicio <= ahora;
+        const dentroFin = !desc.fechaFin || desc.fechaFin >= ahora;
+        const vigente = dentroInicio && dentroFin;
+        const activa = (desc as any).activo !== false;
+
+        if (vigente && activa) {
+          // Por ahora solo usamos porcentaje; tipos futuros como VALOR_FIJO se podrán manejar aquí
+          descuentoPercent = Math.max(0, Math.min(100, Number(desc.porcentaje)));
+        }
       }
     }
     const discountAmount = Math.round(itemsTotal * (descuentoPercent / 100));
@@ -66,6 +75,9 @@ export class VentaService {
     const venta = new Venta();
     venta.total = computedTotal;
     venta.forma_pago = dto.forma_pago;
+    // estado: confirmada o pendiente (por defecto confirmada)
+    (venta as any).estado = (dto as any).estado ?? 'confirmada';
+    venta.clienteId = dto.clienteId ?? null;
     if (meta) {
       venta.usuarioId = meta.usuarioId ?? null;
       venta.turnoId = meta.turnoId ?? null;
@@ -107,7 +119,7 @@ export class VentaService {
     const rows = await this.ventaRepo.find({
       where,
       order: { id: 'DESC' },
-      relations: ['items', 'items.producto'],
+      relations: ['items', 'items.producto', 'cliente'],
       take,
     });
     // Traer info de descuentos en lote
@@ -135,5 +147,95 @@ export class VentaService {
       }
       return dto;
     });
+  }
+
+  async reporteVentasPorEmpleado(params?: { from?: string; to?: string }) {
+    const qb = this.ventaRepo.createQueryBuilder('v');
+
+    qb.select('v.usuarioId', 'usuarioId')
+      .addSelect('COUNT(v.id)', 'cantidadVentas')
+      .addSelect('COALESCE(SUM(v.total), 0)', 'totalVentas')
+      .where('v.usuarioId IS NOT NULL');
+
+    if (params?.from) {
+      qb.andWhere('v.fecha_hora >= :from', { from: new Date(params.from) });
+    }
+    if (params?.to) {
+      const to = new Date(params.to);
+      to.setHours(23, 59, 59, 999);
+      qb.andWhere('v.fecha_hora <= :to', { to });
+    }
+
+    qb.groupBy('v.usuarioId').orderBy('"totalVentas"', 'DESC');
+
+    const rows = await qb.getRawMany<{ usuarioId: number; cantidadVentas: string; totalVentas: string }>();
+    return rows.map((r) => ({
+      usuarioId: Number(r.usuarioId),
+      cantidadVentas: Number(r.cantidadVentas || 0),
+      totalVentas: Number(r.totalVentas || 0),
+    }));
+  }
+
+  async reporteVentasPorProducto(params?: { from?: string; to?: string }) {
+    const qb = this.itemRepo.createQueryBuilder('vi')
+      .innerJoin('vi.venta', 'v')
+      .innerJoin('vi.producto', 'p');
+
+    qb.select('p.id', 'productoId')
+      .addSelect('p.nombreProducto', 'nombreProducto')
+      .addSelect('COALESCE(SUM(vi.cantidad), 0)', 'cantidadVendida')
+      .addSelect('COALESCE(SUM(vi.subtotal), 0)', 'totalVendido')
+      .where('v.estado = :estado', { estado: 'confirmada' });
+
+    if (params?.from) {
+      qb.andWhere('v.fecha_hora >= :from', { from: new Date(params.from) });
+    }
+    if (params?.to) {
+      const to = new Date(params.to);
+      to.setHours(23, 59, 59, 999);
+      qb.andWhere('v.fecha_hora <= :to', { to });
+    }
+
+    qb.groupBy('p.id').addGroupBy('p.nombreProducto').orderBy('"totalVendido"', 'DESC');
+
+    const rows = await qb.getRawMany<{ productoId: number; nombreProducto: string; cantidadVendida: string; totalVendido: string }>();
+    return rows.map((r) => ({
+      productoId: Number(r.productoId),
+      nombreProducto: r.nombreProducto,
+      cantidadVendida: Number(r.cantidadVendida || 0),
+      totalVendido: Number(r.totalVendido || 0),
+    }));
+  }
+
+  async reporteVentasPorCategoria(params?: { from?: string; to?: string }) {
+    const qb = this.itemRepo.createQueryBuilder('vi')
+      .innerJoin('vi.venta', 'v')
+      .innerJoin('vi.producto', 'p')
+      .leftJoin('p.categoria', 'c');
+
+    qb.select('c.idCategoria', 'categoriaId')
+      .addSelect('c.nombreCategoria', 'nombreCategoria')
+      .addSelect('COALESCE(SUM(vi.cantidad), 0)', 'cantidadVendida')
+      .addSelect('COALESCE(SUM(vi.subtotal), 0)', 'totalVendido')
+      .where('v.estado = :estado', { estado: 'confirmada' });
+
+    if (params?.from) {
+      qb.andWhere('v.fecha_hora >= :from', { from: new Date(params.from) });
+    }
+    if (params?.to) {
+      const to = new Date(params.to);
+      to.setHours(23, 59, 59, 999);
+      qb.andWhere('v.fecha_hora <= :to', { to });
+    }
+
+    qb.groupBy('c.idCategoria').addGroupBy('c.nombreCategoria').orderBy('"totalVendido"', 'DESC');
+
+    const rows = await qb.getRawMany<{ categoriaId: number | null; nombreCategoria: string | null; cantidadVendida: string; totalVendido: string }>();
+    return rows.map((r) => ({
+      categoriaId: r.categoriaId != null ? Number(r.categoriaId) : null,
+      nombreCategoria: r.nombreCategoria || 'Sin categoría',
+      cantidadVendida: Number(r.cantidadVendida || 0),
+      totalVendido: Number(r.totalVendido || 0),
+    }));
   }
 }
