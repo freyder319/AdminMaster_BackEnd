@@ -111,15 +111,67 @@ export class TurnoService {
       });
       await manager.save(CajaMovimiento, cierre);
 
-      await manager.update(Turno, { id: activo.id }, { finTurno: new Date(), cierreCajaId: cierre.id });
+      const fechaCierre = new Date();
+      await manager.update(Turno, { id: activo.id }, { finTurno: fechaCierre, cierreCajaId: cierre.id });
 
       const asignacion = await manager.findOne(AsignacionCajaTurno, { where: { turnoId: activo.id, horaLiberacion: IsNull() } });
       if (asignacion) {
-        asignacion.horaLiberacion = new Date();
+        asignacion.horaLiberacion = fechaCierre;
         await manager.save(AsignacionCajaTurno, asignacion);
       }
 
       const resumen = await this.composeResumen(manager, activo.id);
+
+      // Resolver nombre del empleado/usuario para registrar en observaciones
+      const { nombre, apellido } = await this.resolveNombre(usuarioId);
+      const nombreCompleto = [nombre, apellido].filter(Boolean).join(' ');
+
+      // Actualizar estado del registro de turno vinculado (cumplido/incumplido)
+      const registro = await manager.findOne(RegistroTurno, { where: { turnoId: activo.id } });
+      if (registro) {
+        // Normalizar horas de registro a minutos
+        const [desdeH, desdeM] = (registro.horaDesde || '00:00').split(':').map(v => Number(v));
+        const [hastaH, hastaM] = (registro.horaHasta || '23:59').split(':').map(v => Number(v));
+        const desdeMin = (Number.isFinite(desdeH) && Number.isFinite(desdeM)) ? desdeH * 60 + desdeM : 0;
+        const hastaMin = (Number.isFinite(hastaH) && Number.isFinite(hastaM)) ? hastaH * 60 + hastaM : 23 * 60 + 59;
+
+        const inicio = resumen.turno?.inicioTurno ? new Date(resumen.turno.inicioTurno) : fechaCierre;
+        const fin = resumen.turno?.finTurno ? new Date(resumen.turno.finTurno) : fechaCierre;
+
+        const inicioMin = inicio.getHours() * 60 + inicio.getMinutes();
+        const finMin = fin.getHours() * 60 + fin.getMinutes();
+
+        // Tolerancia de 5 minutos antes y después del rango configurado
+        const tolerancia = 5;
+        const desdeConTol = Math.max(0, desdeMin - tolerancia);
+        const hastaConTol = Math.min(23 * 60 + 59, hastaMin + tolerancia);
+
+        if (inicioMin >= desdeConTol && finMin <= hastaConTol) {
+          (registro as any).estado = 'cumplido';
+          const baseMsg = 'El Turno fue Cumplido dentro del horario establecido (con tolerancia de 5 minutos).';
+          (registro as any).observacionEstado = nombreCompleto
+            ? `${baseMsg} Responsable: ${nombreCompleto}.`
+            : baseMsg;
+        } else {
+          (registro as any).estado = 'incumplido';
+
+          let detalle: string;
+          if (inicioMin > hastaConTol) {
+            detalle = 'El Turno se inició después del horario establecido.';
+          } else if (finMin > hastaConTol) {
+            detalle = 'El Turno se cerró después del horario establecido.';
+          } else if (inicioMin < desdeConTol) {
+            detalle = 'El Turno se inició antes del horario establecido.';
+          } else {
+            detalle = 'El Turno no se ajustó al horario establecido.';
+          }
+
+          (registro as any).observacionEstado = nombreCompleto
+            ? `El Turno fue Incumplido. ${detalle} Responsable: ${nombreCompleto}.`
+            : `El Turno fue Incumplido. ${detalle}`;
+        }
+        await manager.save(RegistroTurno, registro);
+      }
 
       const saldoInicial = resumen.aperturaCaja ? Number(resumen.aperturaCaja.montoInicial || 0) : 0;
       const saldoFinal = resumen.cierreCaja ? Number(resumen.cierreCaja.montoFinal || dto.montoFinal || 0) : Number(dto.montoFinal || 0);
@@ -279,6 +331,19 @@ export class TurnoService {
       ? await manager.findOne(CajaMovimiento, { where: { id: turno.cierreCajaId } })
       : null;
 
+    // Resolver caja utilizada (si aplica) por usuario
+    let cajaNombre: string | null = null;
+    let cajaCodigo: string | null = null;
+    let cajaId: number | null = null;
+    try {
+      const caja = await this.cajaService.findCajaByUsuarioId(turno.usuarioId, false) || await this.cajaService.findCajaByUsuarioId(turno.usuarioId, true);
+      if (caja) {
+        cajaId = (caja as any).id ?? null;
+        cajaNombre = (caja as any).nombre ?? null;
+        cajaCodigo = (caja as any).codigoCaja ?? null;
+      }
+    } catch {}
+
     // Ventas del turno: totales y conteo
     const ventas = await this.ventaRepo.find({
       where: { turnoId },
@@ -313,6 +378,7 @@ export class TurnoService {
         finTurno: turno.finTurno || null,
         observaciones: turno.observaciones || null,
       },
+      caja: cajaId ? { id: cajaId, nombre: cajaNombre, codigoCaja: cajaCodigo } : null,
       aperturaCaja: apertura ? { fecha: apertura.fecha, montoInicial: Number(apertura.monto) } : null,
       cierreCaja: cierre ? { fecha: cierre.fecha, montoFinal: Number(cierre.monto) } : null,
       actividad: {

@@ -23,19 +23,34 @@ export class EstadisticasService {
     @InjectRepository(GastoEntity)
     private gastoRepo: Repository<GastoEntity>,
   ) {}
-  async getInventario() {
+
+  private applyPeriodoFiltro(qb: any, mes?: string, semana?: string) {
+    if (mes) {
+      qb.andWhere("EXTRACT(MONTH FROM venta.fecha_hora) = :mes", { mes: Number(mes) });
+    }
+    if (semana) {
+      // Semana del mes: 1-5 aprox, usando el día del mes
+      qb.andWhere("FLOOR((EXTRACT(DAY FROM venta.fecha_hora) - 1) / 7) + 1 = :semana", { semana: Number(semana) });
+    }
+  }
+
+  async getInventario(_periodo?: string, mes?: string, semana?: string) {
  const productos = await this.productoRepo.find({
     relations: ['categoria'],
   });
 
   // Obtener total vendido por producto
-  const ventasPorProducto = await this.ventaItemRepo
+  const ventasQb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
+    .leftJoin('item.venta', 'venta')
     .select('producto.id', 'productoId')
     .addSelect('SUM(item.cantidad)', 'vendidos')
-    .groupBy('producto.id')
-    .getRawMany();
+    .groupBy('producto.id');
+
+  this.applyPeriodoFiltro(ventasQb, mes, semana);
+
+  const ventasPorProducto = await ventasQb.getRawMany();
 
   // Convertimos en diccionario para buscar rápido
   const ventasMap: Record<string, number> = {};
@@ -54,14 +69,17 @@ export class EstadisticasService {
   }
 
 // Estadísticas de Ventas
-  async getComercial() {
-    const ventas = await this.ventaRepo
+  async getComercial(_periodo?: string, mes?: string, semana?: string) {
+    const qb = this.ventaRepo
       .createQueryBuilder('venta')
       .select("DATE_TRUNC('month', venta.fecha_hora)", 'mes')
       .addSelect('SUM(venta.total)', 'total')
       .groupBy("DATE_TRUNC('month', venta.fecha_hora)")
-      .orderBy('mes', 'ASC')
-      .getRawMany();
+      .orderBy('mes', 'ASC');
+
+    this.applyPeriodoFiltro(qb, mes, semana);
+
+    const ventas = await qb.getRawMany();
 
     return {
       labels: ventas.map(v => new Date(v.mes).toLocaleString('es-ES', { month: 'long' })),
@@ -70,25 +88,36 @@ export class EstadisticasService {
   }
 
   // Estadísticas Financieras
-async getFinanzas() {
+async getFinanzas(_periodo?: string, mes?: string, semana?: string) {
    // INGRESOS (VENTAS)
-  const ventas = await this.ventaRepo
+  const ventasQb = this.ventaRepo
     .createQueryBuilder('venta')
     .select("TO_CHAR(venta.fecha_hora, 'Month')", 'mes')
     .addSelect('SUM(venta.total)', 'total')
     .groupBy("TO_CHAR(venta.fecha_hora, 'Month')")
-    .orderBy("MIN(venta.fecha_hora)")
-    .getRawMany();
+    .orderBy("MIN(venta.fecha_hora)");
+
+  this.applyPeriodoFiltro(ventasQb, mes, semana);
+
+  const ventas = await ventasQb.getRawMany();
 
   // GASTOS ADMINISTRATIVOS REALES
-  const gastosAdmin = await this.gastoRepo
+  const gastosAdminQb = this.gastoRepo
     .createQueryBuilder('gasto')
     .select("TO_CHAR(gasto.fecha, 'Month')", 'mes')
     .addSelect('SUM(CAST(gasto.monto AS numeric))', 'total')
     .where("gasto.estado = 'confirmado'")
     .groupBy("TO_CHAR(gasto.fecha, 'Month')")
-    .orderBy("MIN(gasto.fecha)")
-    .getRawMany();
+    .orderBy("MIN(gasto.fecha)");
+
+  if (mes) {
+    gastosAdminQb.andWhere("EXTRACT(MONTH FROM gasto.fecha) = :mes", { mes: Number(mes) });
+  }
+  if (semana) {
+    gastosAdminQb.andWhere("FLOOR((EXTRACT(DAY FROM gasto.fecha) - 1) / 7) + 1 = :semana", { semana: Number(semana) });
+  }
+
+  const gastosAdmin = await gastosAdminQb.getRawMany();
 
   const mesesSet = new Set([
     ...ventas.map(v => v.mes.trim()),
@@ -169,16 +198,20 @@ async getFinanzas() {
   };
 }
   // Productos más vendidos
-async getProductosMasVendidos() {
-  const resultados = await this.ventaItemRepo
+async getProductosMasVendidos(_periodo?: string, mes?: string, semana?: string) {
+  const qb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
+    .leftJoin('item.venta', 'venta')
     .select('producto.nombreProducto', 'nombre')
     .addSelect('SUM(item.cantidad)', 'vendidos')
     .groupBy('producto.nombreProducto')
     .orderBy('vendidos', 'DESC')
-    .limit(5)
-    .getRawMany();
+    .limit(5);
+
+  this.applyPeriodoFiltro(qb, mes, semana);
+
+  const resultados = await qb.getRawMany();
 
   return resultados.map(r => ({
     nombre: r.nombre,
@@ -186,13 +219,16 @@ async getProductosMasVendidos() {
   }));
   }
   // Ventas por método de pago
-async getVentasPorMetodoPago() {
-  const ventas = await this.ventaRepo
+async getVentasPorMetodoPago(_periodo?: string, mes?: string, semana?: string) {
+  const qb = this.ventaRepo
     .createQueryBuilder('venta')
     .select('venta.forma_pago', 'metodo')
     .addSelect('COUNT(*)', 'cantidad')
-    .groupBy('venta.forma_pago')
-    .getRawMany();
+    .groupBy('venta.forma_pago');
+
+  this.applyPeriodoFiltro(qb, mes, semana);
+
+  const ventas = await qb.getRawMany();
 
   return {
     labels: ventas.map(v => v.metodo ?? 'Desconocido'),
@@ -202,15 +238,19 @@ async getVentasPorMetodoPago() {
 
 
 // Ventas por categoría de producto
-async getVentasPorCategoria() {
-  const resultados = await this.ventaItemRepo
+async getVentasPorCategoria(_periodo?: string, mes?: string, semana?: string) {
+  const qb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
+    .leftJoin('item.venta', 'venta')
     .leftJoin('producto.categoria', 'categoria')
     .select('categoria.nombreCategoria', 'categoria')
     .addSelect('SUM(item.cantidad)', 'cantidad')
-    .groupBy('categoria.nombreCategoria')
-    .getRawMany();
+    .groupBy('categoria.nombreCategoria');
+
+  this.applyPeriodoFiltro(qb, mes, semana);
+
+  const resultados = await qb.getRawMany();
 
   return {
     labels: resultados.map(r => r.categoria || 'Sin categoría'),
@@ -220,14 +260,17 @@ async getVentasPorCategoria() {
 
 
 // Cantidad de ventas por mes
-async getVentasPorMes() {
-  const ventas = await this.ventaRepo
+async getVentasPorMes(_periodo?: string, mes?: string, semana?: string) {
+  const qb = await this.ventaRepo
       .createQueryBuilder('venta')
       .select("TO_CHAR(venta.fecha_hora, 'Month')", 'mes')
       .addSelect('COUNT(*)', 'cantidad')
       .groupBy("TO_CHAR(venta.fecha_hora, 'Month')")
-      .orderBy("MIN(venta.fecha_hora)")
-      .getRawMany();
+      .orderBy("MIN(venta.fecha_hora)");
+
+    this.applyPeriodoFiltro(qb, mes, semana);
+
+    const ventas = await qb.getRawMany();
 
     return {
       labels: ventas.map(v => v.mes.trim()),
@@ -237,10 +280,11 @@ async getVentasPorMes() {
 
 
 // Productos más rentables
-async getProductosRentables() {
-  const resultados = await this.ventaItemRepo
+async getProductosRentables(_periodo?: string, mes?: string, semana?: string) {
+  const qb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
+    .leftJoin('item.venta', 'venta')
     .select('producto.nombreProducto', 'nombre')
     .addSelect('SUM(item.cantidad)', 'vendidos')
     .addSelect('producto.precioComercial', 'precio')
@@ -248,8 +292,11 @@ async getProductosRentables() {
     .groupBy('producto.nombreProducto')
     .addGroupBy('producto.precioComercial')
     .addGroupBy('producto.precioUnitario')
-    .orderBy('vendidos', 'DESC')
-    .getRawMany();
+    .orderBy('vendidos', 'DESC');
+
+  this.applyPeriodoFiltro(qb, mes, semana);
+
+  const resultados = await qb.getRawMany();
 
   return {
     labels: resultados.map(r => r.nombre),

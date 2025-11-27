@@ -20,4 +20,9 @@ export class ConfiguracionController {
   async update(@Param('id') id: number, @Body() dto: Partial<CreateConfiguracionDto>) {
     return this.svc.update(Number(id), dto);
   }
+
+  @Post('logo')
+  async uploadLogo(@Body('imageBase64') imageBase64: string) {
+    return this.svc.processLogoBase64(imageBase64);
+  }
 }

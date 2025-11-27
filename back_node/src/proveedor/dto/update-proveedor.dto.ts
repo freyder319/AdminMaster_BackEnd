@@ -1,15 +1,6 @@
 import { IsBoolean, IsEmail, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
 export class UpdateProveedorDto {
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  nombre?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  apellido?: string;
 
   @IsOptional()
   @IsString()
@@ -24,4 +15,19 @@ export class UpdateProveedorDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  nombreEmpresa?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  nit?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  contactoNombre?: string;
 }

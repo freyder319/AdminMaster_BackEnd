@@ -2,6 +2,9 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Producto } from './producto.entity';
 import { Repository } from 'typeorm';
+import axios from 'axios';
+import { join } from 'path';
+import { promises as fs } from 'fs';
 
 @Injectable()
 export class ProductoService {
@@ -212,5 +215,52 @@ findPublic(): Promise<Producto[]> {
 
     producto.stockProducto = cantidad;
     return this.productoRepo.save(producto);
+  }
+
+  /**
+   * Procesa una imagen de producto en base64, elimina el fondo con el mismo
+   * servicio externo usado para el logo, guarda el PNG en storage/productos
+   * y devuelve la URL pública para usarla como imgProducto.
+   */
+  async processImagenBase64(imageBase64: string): Promise<{ imgProducto: string }> {
+    if (!imageBase64) {
+      throw new BadRequestException('imageBase64 es requerido');
+    }
+
+    const base64Clean = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+
+    const apiKey = process.env.REMOVEBG_API_KEY;
+    if (!apiKey) {
+      throw new BadRequestException('Falta configurar REMOVEBG_API_KEY en el backend');
+    }
+
+    const response = await axios({
+      method: 'post',
+      url: 'https://api.remove.bg/v1.0/removebg',
+      data: {
+        image_file_b64: base64Clean,
+        size: 'auto',
+      },
+      headers: {
+        'X-Api-Key': apiKey,
+      },
+      responseType: 'arraybuffer',
+      validateStatus: () => true,
+    });
+
+    if (response.status !== 200) {
+      throw new BadRequestException('No se pudo procesar la imagen del producto en el servicio de eliminación de fondo');
+    }
+
+    const storageDir = join(__dirname, '..', '..', 'storage', 'productos');
+    await fs.mkdir(storageDir, { recursive: true });
+    const fileName = `producto_${Date.now()}.png`;
+    const filePath = join(storageDir, fileName);
+    await fs.writeFile(filePath, response.data);
+
+    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    const imgProducto = `${baseUrl}/storage/productos/${fileName}`;
+
+    return { imgProducto };
   }
 }
