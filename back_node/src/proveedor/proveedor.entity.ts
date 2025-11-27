@@ -5,11 +5,14 @@ export class ProveedorEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ length: 100 })
-  nombre!: string;
+  @Column({ length: 150, nullable: true })
+  nombreEmpresa?: string;
 
-  @Column({ length: 100, nullable: true })
-  apellido?: string;
+  @Column({ length: 30, nullable: true })
+  nit?: string;
+
+  @Column({ length: 150, nullable: true })
+  contactoNombre?: string;
 
   @Column({ length: 20 })
   telefono!: string;

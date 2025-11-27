@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 export type BloqueTurno = 'manana' | 'tarde' | 'noche';
+export type EstadoRegistroTurno = 'por_cumplir' | 'pendiente' | 'cumplido' | 'incumplido';
 
 @Entity('registro_turnos')
 @Index(['fecha', 'bloque'])
@@ -30,6 +31,12 @@ export class RegistroTurno {
 
   @Column({ type: 'int', name: 'turno_id', nullable: true })
   turnoId?: number | null;
+
+  @Column({ type: 'varchar', length: 20, default: 'por_cumplir' })
+  estado!: EstadoRegistroTurno;
+
+  @Column({ type: 'text', nullable: true })
+  observacionEstado?: string | null;
 
   // Fecha/hora de creación del registro
   @CreateDateColumn({ name: 'created_at' })

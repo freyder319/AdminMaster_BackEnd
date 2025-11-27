@@ -15,6 +15,12 @@ export class ProductoController {
     return this.productoService.create(createProductoDto);
   }
 
+  @Post('imagen')
+  @UseGuards(JwtAuthGuard)
+  uploadImagen(@Body('imageBase64') imageBase64: string) {
+    return this.productoService.processImagenBase64(imageBase64);
+  }
+
   @Get('count')
   @SkipThrottle()
   async getCount(): Promise<{ total: number }> {

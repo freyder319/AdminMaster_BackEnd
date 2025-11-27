@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { EstadisticasService } from './estadisticas.service';
 import { CreateEstadisticaDto } from './dto/create-estadistica.dto';
 import { UpdateEstadisticaDto } from './dto/update-estadistica.dto';
@@ -8,42 +8,74 @@ export class EstadisticasController {
   constructor(private readonly estadisticasService: EstadisticasService) {}
 
   @Get('inventario')
-  getInventario() {
-    return this.estadisticasService.getInventario();
+  getInventario(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getInventario(periodo, mes, semana);
   }
 
   @Get('productos-mas-vendidos')
-  getProductosMasVendidos() {
-    return this.estadisticasService.getProductosMasVendidos();
+  getProductosMasVendidos(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getProductosMasVendidos(periodo, mes, semana);
   }
 
   @Get('comercial')
-  getComercial() {
-    return this.estadisticasService.getComercial();
+  getComercial(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getComercial(periodo, mes, semana);
   }
 
   @Get('finanzas')
-  getFinanzas() {
-    return this.estadisticasService.getFinanzas();
+  getFinanzas(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getFinanzas(periodo, mes, semana);
   }
   @Get('ventas-metodo-pago')
-  getVentasPorMetodoPago() {
-    return this.estadisticasService.getVentasPorMetodoPago();
+  getVentasPorMetodoPago(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getVentasPorMetodoPago(periodo, mes, semana);
   }
 
   @Get('ventas-categoria')
-  getVentasCategoria() {
-    return this.estadisticasService.getVentasPorCategoria();
+  getVentasCategoria(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getVentasPorCategoria(periodo, mes, semana);
   }
 
   @Get('ventas-por-mes')
-  getVentasPorMes() {
-    return this.estadisticasService.getVentasPorMes();
+  getVentasPorMes(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getVentasPorMes(periodo, mes, semana);
   }
 
   @Get('productos-rentables')
-  getProductosRentables() {
-    return this.estadisticasService.getProductosRentables();
+  getProductosRentables(
+    @Query('periodo') periodo?: string,
+    @Query('mes') mes?: string,
+    @Query('semana') semana?: string,
+  ) {
+    return this.estadisticasService.getProductosRentables(periodo, mes, semana);
   }
   @Get('finanzas/ingresos-gastos')
   getIngresosGastos() {

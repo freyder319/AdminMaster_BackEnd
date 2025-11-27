@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { RegistroTurno, BloqueTurno } from './registro-turno.entity';
+import { RegistroTurno, BloqueTurno, EstadoRegistroTurno } from './registro-turno.entity';
 
 interface CreateRegistroTurnoDto {
   fecha?: string; // YYYY-MM-DD, opcional (por defecto hoy)
@@ -40,12 +40,28 @@ export class RegistroTurnoService {
     const horaDesde = (dto.horaDesde || '').trim();
     const horaHasta = (dto.horaHasta || '').trim();
 
+    const hoy = this.todayIsoDate();
+    let estado: EstadoRegistroTurno = 'pendiente';
+    let observacionEstado: string | null = null;
+    if (fecha > hoy) {
+      estado = 'por_cumplir';
+      observacionEstado = 'Turno programado para una fecha futura.';
+    } else if (fecha < hoy) {
+      // Si se crea en una fecha pasada, por defecto se considera incumplido
+      estado = 'incumplido';
+      observacionEstado = 'Turno creado para una fecha pasada sin registro de turno asociado.';
+    } else {
+      observacionEstado = 'Turno pendiente por iniciar y cerrar en el horario establecido.';
+    }
+
     const entity = this.registroRepo.create({
       fecha,
       bloque,
       notas: dto.notas?.trim() || null,
       horaDesde: horaDesde || null,
       horaHasta: horaHasta || null,
+      estado,
+      observacionEstado,
     });
     return this.registroRepo.save(entity);
   }
