@@ -258,7 +258,7 @@ findPublic(): Promise<Producto[]> {
     const filePath = join(storageDir, fileName);
     await fs.writeFile(filePath, response.data);
 
-    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'https://antojitosdoima.site/api';
     const imgProducto = `${baseUrl}/storage/productos/${fileName}`;
 
     return { imgProducto };

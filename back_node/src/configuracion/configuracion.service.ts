@@ -75,7 +75,7 @@ export class ConfiguracionService {
     await fs.writeFile(filePath, response.data);
 
     // Construir URL pública (usa storage que ya está servido en main.ts)
-    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'https://antojitosdoima.site/api';
     const logoUrl = `${baseUrl}/storage/logo.png`;
 
     // Actualizar o crear configuración con el nuevo logo
