@@ -106,7 +106,7 @@ export class AgenteIaService {
       // Limpiar imágenes antiguas
       this.cleanupOldImages();
 
-      const imageUrl = `${process.env.API_BASE_URL || 'http://localhost:3000'}/agente-ia/temp-image/${imageId}`;
+      const imageUrl = `${process.env.API_BASE_URL || 'https://antojitosdoima.site/api'}/agente-ia/temp-image/${imageId}`;
       
       return { imageUrl };
     } catch (error) {

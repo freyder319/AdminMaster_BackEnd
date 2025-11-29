@@ -22,9 +22,11 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:4200',
+      'https://antojitosdoima.site',
+      'https://www.antojitosdoima.site'
     ],
-    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: '*',   // permite todos los headers
     credentials: true,
   });
   // Global validation

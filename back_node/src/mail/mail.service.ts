@@ -51,7 +51,7 @@ export class MailService {
 
   async enviarCorreoActivacionEmpleado(correo: string, token: string): Promise<void> {
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://antojitosdoima.site';
       const enlace = `${frontendUrl}/activar-empleado?correo=${encodeURIComponent(correo)}&codigo=${encodeURIComponent(token)}`;
 
       await this.transporter.sendMail({
