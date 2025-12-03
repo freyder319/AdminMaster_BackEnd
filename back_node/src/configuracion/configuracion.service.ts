@@ -15,7 +15,32 @@ export class ConfiguracionService {
   ) {}
 
   async findFirst(): Promise<ConfiguracionNegocio | null> {
-    return this.repo.findOne({ where: {} });
+    try {
+      const result = await this.repo.findOne({ where: {} });
+      return result || null;
+    } catch (error: any) {
+      console.error('Error en findFirst:', error);
+      
+      // Si es error de conexión, devolver null silenciosamente
+      if (error?.message && (
+        error.message.includes('ECONNREFUSED') || 
+        error.message.includes('ECONNRESET') ||
+        error.message.includes('ENOTFOUND') ||
+        error.message.includes('database') ||
+        error.message.includes('connection')
+      )) {
+        console.log('Error de conexión a BD, devolviendo null');
+        return null;
+      }
+      
+      // Si es error de tabla no existe, devolver null
+      if (error?.message && error.message.includes('configuracion_negocio')) {
+        console.log('Tabla configuracion_negocio no existe, devolviendo null');
+        return null;
+      }
+      
+      throw new BadRequestException('Error al buscar configuración: ' + (error?.message || 'Error desconocido'));
+    }
   }
 
   async create(dto: CreateConfiguracionDto): Promise<ConfiguracionNegocio> {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, Param } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Param, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { ConfiguracionService } from './configuracion.service';
 import { CreateConfiguracionDto } from './dto/create-configuracion.dto';
 
@@ -8,7 +8,15 @@ export class ConfiguracionController {
 
   @Get()
   async get() {
-    return this.svc.findFirst();
+    try {
+      const result = await this.svc.findFirst();
+      return result || null;
+    } catch (error) {
+      console.error('Error en GET /configuracion:', error);
+      
+      // Para cualquier error, devolver null en lugar de 500
+      return null;
+    }
   }
 
   @Post()
