@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe, UseGuards, Req, Patch, Param } from '@nestjs/common';
 import { VentaService } from './venta.service';
 import { CreateVentaDto } from './dto/create-venta.dto';
 import type { Response, Request } from 'express';
@@ -171,5 +171,13 @@ export class VentaController {
 
     await workbook.xlsx.write(res);
     res.end();
+  }
+
+  @Patch(':id/estado')
+  async cambiarEstado(
+    @Param('id') id: string,
+    @Body('estado') estado: 'confirmada' | 'pendiente',
+  ) {
+    return this.service.actualizarEstado(Number(id), estado);
   }
 }

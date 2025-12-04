@@ -228,8 +228,6 @@ export class VentaService {
       qb.andWhere('v.fecha_hora <= :to', { to });
     }
 
-    qb.groupBy('c.idCategoria').addGroupBy('c.nombreCategoria').orderBy('"totalVendido"', 'DESC');
-
     const rows = await qb.getRawMany<{ categoriaId: number | null; nombreCategoria: string | null; cantidadVendida: string; totalVendido: string }>();
     return rows.map((r) => ({
       categoriaId: r.categoriaId != null ? Number(r.categoriaId) : null,
@@ -237,5 +235,15 @@ export class VentaService {
       cantidadVendida: Number(r.cantidadVendida || 0),
       totalVendido: Number(r.totalVendido || 0),
     }));
+  }
+
+  async actualizarEstado(id: number, estado: 'confirmada' | 'pendiente') {
+    const venta = await this.ventaRepo.findOne({ where: { id } });
+    if (!venta) {
+      throw new BadRequestException('Venta no encontrada');
+    }
+    (venta as any).estado = estado;
+    const saved = await this.ventaRepo.save(venta);
+    return { id: saved.id, estado: (saved as any).estado };
   }
 }
