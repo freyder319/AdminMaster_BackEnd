@@ -24,6 +24,15 @@ export class EstadisticasService {
     private gastoRepo: Repository<GastoEntity>,
   ) {}
 
+  private applyFechaRango(qb: any, columna: string, fechaDesde?: string, fechaHasta?: string) {
+    if (fechaDesde) {
+      qb.andWhere(`${columna} >= :fechaDesde`, { fechaDesde });
+    }
+    if (fechaHasta) {
+      qb.andWhere(`${columna} <= :fechaHasta`, { fechaHasta });
+    }
+  }
+
   private applyPeriodoFiltro(qb: any, mes?: string, semana?: string) {
     if (mes) {
       qb.andWhere("EXTRACT(MONTH FROM venta.fecha_hora) = :mes", { mes: Number(mes) });
@@ -34,7 +43,7 @@ export class EstadisticasService {
     }
   }
 
-  async getInventario(_periodo?: string, mes?: string, semana?: string) {
+  async getInventario(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
  const productos = await this.productoRepo.find({
     relations: ['categoria'],
   });
@@ -49,6 +58,7 @@ export class EstadisticasService {
     .groupBy('producto.id');
 
   this.applyPeriodoFiltro(ventasQb, mes, semana);
+  this.applyFechaRango(ventasQb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
   const ventasPorProducto = await ventasQb.getRawMany();
 
@@ -69,7 +79,7 @@ export class EstadisticasService {
   }
 
 // Estadísticas de Ventas
-  async getComercial(_periodo?: string, mes?: string, semana?: string) {
+  async getComercial(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
     const qb = this.ventaRepo
       .createQueryBuilder('venta')
       .select("DATE_TRUNC('month', venta.fecha_hora)", 'mes')
@@ -78,6 +88,8 @@ export class EstadisticasService {
       .orderBy('mes', 'ASC');
 
     this.applyPeriodoFiltro(qb, mes, semana);
+  this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
+    this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
     const ventas = await qb.getRawMany();
 
@@ -88,7 +100,7 @@ export class EstadisticasService {
   }
 
   // Estadísticas Financieras
-async getFinanzas(_periodo?: string, mes?: string, semana?: string) {
+async getFinanzas(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
    // INGRESOS (VENTAS)
   const ventasQb = this.ventaRepo
     .createQueryBuilder('venta')
@@ -98,6 +110,7 @@ async getFinanzas(_periodo?: string, mes?: string, semana?: string) {
     .orderBy("MIN(venta.fecha_hora)");
 
   this.applyPeriodoFiltro(ventasQb, mes, semana);
+  this.applyFechaRango(ventasQb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
   const ventas = await ventasQb.getRawMany();
 
@@ -116,6 +129,7 @@ async getFinanzas(_periodo?: string, mes?: string, semana?: string) {
   if (semana) {
     gastosAdminQb.andWhere("FLOOR((EXTRACT(DAY FROM gasto.fecha) - 1) / 7) + 1 = :semana", { semana: Number(semana) });
   }
+  this.applyFechaRango(gastosAdminQb, 'gasto.fecha', fechaDesde, fechaHasta);
 
   const gastosAdmin = await gastosAdminQb.getRawMany();
 
@@ -198,7 +212,7 @@ async getFinanzas(_periodo?: string, mes?: string, semana?: string) {
   };
 }
   // Productos más vendidos
-async getProductosMasVendidos(_periodo?: string, mes?: string, semana?: string) {
+async getProductosMasVendidos(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
   const qb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
@@ -210,6 +224,7 @@ async getProductosMasVendidos(_periodo?: string, mes?: string, semana?: string) 
     .limit(5);
 
   this.applyPeriodoFiltro(qb, mes, semana);
+  this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
   const resultados = await qb.getRawMany();
 
@@ -219,7 +234,7 @@ async getProductosMasVendidos(_periodo?: string, mes?: string, semana?: string) 
   }));
   }
   // Ventas por método de pago
-async getVentasPorMetodoPago(_periodo?: string, mes?: string, semana?: string) {
+async getVentasPorMetodoPago(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
   const qb = this.ventaRepo
     .createQueryBuilder('venta')
     .select('venta.forma_pago', 'metodo')
@@ -227,6 +242,7 @@ async getVentasPorMetodoPago(_periodo?: string, mes?: string, semana?: string) {
     .groupBy('venta.forma_pago');
 
   this.applyPeriodoFiltro(qb, mes, semana);
+  this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
   const ventas = await qb.getRawMany();
 
@@ -238,7 +254,7 @@ async getVentasPorMetodoPago(_periodo?: string, mes?: string, semana?: string) {
 
 
 // Ventas por categoría de producto
-async getVentasPorCategoria(_periodo?: string, mes?: string, semana?: string) {
+async getVentasPorCategoria(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
   const qb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
@@ -249,6 +265,7 @@ async getVentasPorCategoria(_periodo?: string, mes?: string, semana?: string) {
     .groupBy('categoria.nombreCategoria');
 
   this.applyPeriodoFiltro(qb, mes, semana);
+  this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
   const resultados = await qb.getRawMany();
 
@@ -260,7 +277,7 @@ async getVentasPorCategoria(_periodo?: string, mes?: string, semana?: string) {
 
 
 // Cantidad de ventas por mes
-async getVentasPorMes(_periodo?: string, mes?: string, semana?: string) {
+async getVentasPorMes(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
   const qb = await this.ventaRepo
       .createQueryBuilder('venta')
       .select("TO_CHAR(venta.fecha_hora, 'Month')", 'mes')
@@ -269,6 +286,7 @@ async getVentasPorMes(_periodo?: string, mes?: string, semana?: string) {
       .orderBy("MIN(venta.fecha_hora)");
 
     this.applyPeriodoFiltro(qb, mes, semana);
+    this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
     const ventas = await qb.getRawMany();
 
@@ -280,7 +298,7 @@ async getVentasPorMes(_periodo?: string, mes?: string, semana?: string) {
 
 
 // Productos más rentables
-async getProductosRentables(_periodo?: string, mes?: string, semana?: string) {
+async getProductosRentables(_periodo?: string, mes?: string, semana?: string, fechaDesde?: string, fechaHasta?: string) {
   const qb = this.ventaItemRepo
     .createQueryBuilder('item')
     .leftJoin('item.producto', 'producto')
@@ -295,6 +313,7 @@ async getProductosRentables(_periodo?: string, mes?: string, semana?: string) {
     .orderBy('vendidos', 'DESC');
 
   this.applyPeriodoFiltro(qb, mes, semana);
+  this.applyFechaRango(qb, 'venta.fecha_hora', fechaDesde, fechaHasta);
 
   const resultados = await qb.getRawMany();
 

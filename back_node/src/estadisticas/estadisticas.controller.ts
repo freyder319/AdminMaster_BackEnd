@@ -12,8 +12,10 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getInventario(periodo, mes, semana);
+    return this.estadisticasService.getInventario(periodo, mes, semana, fechaDesde, fechaHasta);
   }
 
   @Get('productos-mas-vendidos')
@@ -21,8 +23,10 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getProductosMasVendidos(periodo, mes, semana);
+    return this.estadisticasService.getProductosMasVendidos(periodo, mes, semana, fechaDesde, fechaHasta);
   }
 
   @Get('comercial')
@@ -30,8 +34,10 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getComercial(periodo, mes, semana);
+    return this.estadisticasService.getComercial(periodo, mes, semana, fechaDesde, fechaHasta);
   }
 
   @Get('finanzas')
@@ -39,16 +45,20 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getFinanzas(periodo, mes, semana);
+    return this.estadisticasService.getFinanzas(periodo, mes, semana, fechaDesde, fechaHasta);
   }
   @Get('ventas-metodo-pago')
   getVentasPorMetodoPago(
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getVentasPorMetodoPago(periodo, mes, semana);
+    return this.estadisticasService.getVentasPorMetodoPago(periodo, mes, semana, fechaDesde, fechaHasta);
   }
 
   @Get('ventas-categoria')
@@ -56,8 +66,10 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getVentasPorCategoria(periodo, mes, semana);
+    return this.estadisticasService.getVentasPorCategoria(periodo, mes, semana, fechaDesde, fechaHasta);
   }
 
   @Get('ventas-por-mes')
@@ -65,8 +77,10 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getVentasPorMes(periodo, mes, semana);
+    return this.estadisticasService.getVentasPorMes(periodo, mes, semana, fechaDesde, fechaHasta);
   }
 
   @Get('productos-rentables')
@@ -74,8 +88,10 @@ export class EstadisticasController {
     @Query('periodo') periodo?: string,
     @Query('mes') mes?: string,
     @Query('semana') semana?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.estadisticasService.getProductosRentables(periodo, mes, semana);
+    return this.estadisticasService.getProductosRentables(periodo, mes, semana, fechaDesde, fechaHasta);
   }
   @Get('finanzas/ingresos-gastos')
   getIngresosGastos() {
