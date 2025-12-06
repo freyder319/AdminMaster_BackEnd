@@ -19,6 +19,7 @@ export class VentaLibreService {
       productos: dto.productos,
       total: dto.total,
       forma_pago: dto.forma_pago ?? null,
+      transaccionId: dto.transaccionId ?? null,
       usuario_id: dto.usuario_id ?? null,
       observaciones: dto.observaciones ?? null,
       tipo_venta: dto.tipo_venta,

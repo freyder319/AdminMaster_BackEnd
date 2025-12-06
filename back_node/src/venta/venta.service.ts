@@ -75,6 +75,8 @@ export class VentaService {
     const venta = new Venta();
     venta.total = computedTotal;
     venta.forma_pago = dto.forma_pago;
+    // guardar id de transacción si llega en el dto (para pagos no en efectivo)
+    (venta as any).transaccionId = (dto as any).transaccionId ?? null;
     // estado: confirmada o pendiente (por defecto confirmada)
     (venta as any).estado = (dto as any).estado ?? 'confirmada';
     venta.clienteId = dto.clienteId ?? null;
