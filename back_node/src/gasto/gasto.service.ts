@@ -34,6 +34,7 @@ export class GastoService {
       categoriaId: dto.categoriaId,
       proveedorId: dto.proveedorId,
       forma_pago: dto.forma_pago as any,
+      transaccionId: dto.transaccionId ?? null,
       usuarioId: dto.usuarioId,
       turnoId: (dto as any).turnoId ?? null,
       estado: dto.estado as any,
