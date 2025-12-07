@@ -29,13 +29,11 @@ export class ConfiguracionService {
         error.message.includes('database') ||
         error.message.includes('connection')
       )) {
-        console.log('Error de conexión a BD, devolviendo null');
         return null;
       }
       
       // Si es error de tabla no existe, devolver null
       if (error?.message && error.message.includes('configuracion_negocio')) {
-        console.log('Tabla configuracion_negocio no existe, devolviendo null');
         return null;
       }
       
