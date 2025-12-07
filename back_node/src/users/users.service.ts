@@ -31,7 +31,6 @@ export class UsuarioService {
 
   async actualizarContrasena(id: number, nueva: string) {
     const hash = await bcrypt.hash(nueva, 10);
-    console.log('Hash generado en servicio:', hash);
     await this.userRepository.update(id, { contrasena: hash });
   }
 }

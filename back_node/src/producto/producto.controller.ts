@@ -42,7 +42,6 @@ export class ProductoController {
 @Get('public')
 async findPublic() {
   const data = await this.productoService.findPublic();
-  console.log("Public products loaded:", data.length);
   return data;
 }
 
