@@ -22,10 +22,6 @@ export class ProductoService {
     // Mapear idCategoria (si viene) a la relación categoria
     const { categoria, ...rest } = data as any;
     const producto = this.productoRepo.create(rest as Partial<Producto>);
-    // Ajustar estado según stock inicial si viene especificado
-    if (typeof (producto as any).stockProducto === 'number') {
-      (producto as any).estado = ((producto as any).stockProducto ?? 0) > 0;
-    }
     const idCategoria = (data as any)?.idCategoria ?? (categoria as any)?.idCategoria;
     if (idCategoria) {
       (producto as any).categoria = { idCategoria: Number(idCategoria) } as any;
@@ -146,13 +142,6 @@ findPublic(): Promise<Producto[]> {
       }
     }
     const updateData: any = { ...data };
-    // Si viene el stock en el payload, auto-ajustar estado
-    if (Object.prototype.hasOwnProperty.call(updateData, 'stockProducto')) {
-      const st = Number(updateData.stockProducto);
-      if (Number.isFinite(st)) {
-        updateData.estado = st > 0;
-      }
-    }
     const idCategoria = (data as any)?.idCategoria ?? (data as any)?.categoria?.idCategoria;
     if (idCategoria) {
       updateData.categoria = { idCategoria: Number(idCategoria) } as any;
